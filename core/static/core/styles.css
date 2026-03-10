@@ -1,0 +1,490 @@
+:root {
+    --bg: #1a2431;
+    --bg-top: #243140;
+    --panel: #253241;
+    --panel-2: #2b3949;
+    --panel-3: #314456;
+    --text: #f5f8fb;
+    --muted: #c0c9d6;
+    --line: rgba(210, 221, 233, 0.18);
+    --shadow: 0 18px 50px rgba(5, 12, 20, 0.22);
+    --radius: 22px;
+    --risk-a: #471018;
+    --risk-b: #7a2230;
+    --build-a: #123628;
+    --build-b: #17604d;
+    --release-a: #112743;
+    --release-b: #274f7f;
+    --runtime-a: #50370a;
+    --runtime-b: #8e6a1d;
+    --lifecycle-a: #35121f;
+    --lifecycle-b: #60243a;
+    --neutral-a: #162235;
+    --neutral-b: #24354d;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    color: var(--text);
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background:
+        radial-gradient(circle at top right, rgba(39, 79, 127, 0.18), transparent 24%),
+        radial-gradient(circle at top left, rgba(122, 34, 48, 0.14), transparent 22%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg) 100%);
+}
+
+a {
+    color: #d4e7ff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #ffffff;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+    border-radius: 16px;
+}
+
+.page-shell {
+    width: min(1220px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 24px 0 48px;
+}
+
+.site-header,
+.site-footer,
+.hero,
+.content-panel,
+.page-header,
+.card,
+.sidebar-card,
+.detail-main {
+    background: linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+}
+
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 18px 24px;
+    border-radius: 999px;
+    position: sticky;
+    top: 18px;
+    z-index: 20;
+    backdrop-filter: blur(16px);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: var(--text);
+}
+
+.brand strong,
+.brand small {
+    display: block;
+}
+
+.brand small,
+.site-footer,
+.meta,
+.eyebrow {
+    color: var(--muted);
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1f3450 0%, #0f7a62 100%);
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.site-nav {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.site-nav a {
+    padding: 10px 14px;
+    border-radius: 999px;
+    color: #c9d8e8;
+}
+
+.button-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.button-link:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.templates-hero {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top right, rgba(133, 36, 56, 0.18), transparent 24%),
+        linear-gradient(135deg, rgba(84, 31, 49, 0.2), transparent 34%),
+        linear-gradient(180deg, rgba(72, 96, 128, 0.24), rgba(41, 57, 75, 0.8)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(181, 109, 128, 0.34);
+}
+
+.templates-hero::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(197, 91, 113, 0), rgba(197, 91, 113, 0.85), rgba(197, 91, 113, 0));
+}
+
+.templates-grid .template-card {
+    position: relative;
+    background:
+        linear-gradient(180deg, rgba(117, 48, 66, 0.12), transparent 26%),
+        linear-gradient(180deg, rgba(72, 96, 128, 0.24), rgba(41, 57, 75, 0.8)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(176, 102, 122, 0.28);
+}
+
+.templates-grid .template-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(184, 78, 101, 0.2), rgba(223, 124, 145, 0.95));
+}
+
+.templates-grid .template-card h3 {
+    color: #fff3f5;
+}
+
+.templates-grid .template-card .meta {
+    color: #d5b8c0;
+}
+
+.templates-grid .button-link {
+    background: linear-gradient(180deg, rgba(143, 54, 77, 0.72), rgba(92, 36, 51, 0.82));
+    border-color: rgba(229, 158, 177, 0.22);
+    box-shadow: 0 12px 26px rgba(64, 17, 28, 0.24);
+}
+
+.templates-grid .button-link:hover {
+    background: linear-gradient(180deg, rgba(166, 64, 89, 0.82), rgba(111, 41, 59, 0.9));
+}
+
+.site-nav a:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.hero,
+.detail-layout,
+.grid-section,
+.content-panel,
+.page-header {
+    margin-top: 28px;
+    border-radius: var(--radius);
+}
+
+.hero {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    padding: 36px;
+    overflow: hidden;
+    position: relative;
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(120deg, rgba(39, 79, 127, 0.18), transparent 34%),
+        linear-gradient(300deg, rgba(122, 34, 48, 0.12), transparent 36%);
+    pointer-events: none;
+}
+
+.hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.hero h1,
+.page-header h1 {
+    margin: 10px 0 16px;
+    font-size: clamp(2.4rem, 4vw, 4.4rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+}
+
+.lead {
+    font-size: 1.08rem;
+    line-height: 1.7;
+    color: #c2d0de;
+}
+
+.hero-card {
+    display: grid;
+    gap: 16px;
+}
+
+.metric,
+.sidebar-card {
+    padding: 22px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(61, 82, 103, 0.9), rgba(39, 54, 70, 0.95));
+    border: 1px solid rgba(214, 224, 236, 0.14);
+}
+
+.metric span {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.content-panel,
+.page-header,
+.detail-main {
+    padding: 28px 32px;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+}
+
+.card {
+    padding: 24px;
+    border-radius: 20px;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 48px rgba(10, 18, 30, 0.28);
+}
+
+.section-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: baseline;
+    margin: 0 0 14px;
+}
+
+.section-head h2 {
+    margin: 0;
+}
+
+.detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 0.8fr);
+    gap: 24px;
+    background: none;
+    border: 0;
+    box-shadow: none;
+}
+
+.detail-sidebar {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+.sidebar-card span {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #acc0d3;
+    margin-bottom: 8px;
+}
+
+.sidebar-card strong {
+    color: #ffffff;
+}
+
+.sidebar-card a {
+    display: block;
+    margin-top: 8px;
+}
+
+.prose {
+    line-height: 1.75;
+    color: #dbe6f2;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+    margin-top: 1.8em;
+    line-height: 1.15;
+    color: #ffffff;
+}
+
+.prose p,
+.prose ul,
+.prose ol,
+.prose table {
+    margin: 1em 0;
+}
+
+.prose ul,
+.prose ol {
+    padding-left: 1.3rem;
+}
+
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    background: rgba(30, 41, 54, 0.42);
+    overflow: hidden;
+    border-radius: 14px;
+}
+
+.prose th,
+.prose td {
+    border: 1px solid rgba(176, 193, 211, 0.15);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.prose th {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.prose code {
+    padding: 2px 6px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f5f8fc;
+}
+
+.prose .hint {
+    border-left: 4px solid #f0bb45;
+    background: rgba(240, 187, 69, 0.12);
+    padding: 16px 18px;
+    border-radius: 12px;
+}
+
+.prose figure {
+    margin: 1.5rem 0;
+}
+
+.prose figcaption {
+    color: var(--muted);
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.eyebrow {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+}
+
+.site-footer {
+    margin-top: 28px;
+    padding: 20px 24px;
+    border-radius: 22px;
+    text-align: center;
+}
+
+.theme-risk {
+    background:
+        linear-gradient(180deg, rgba(160, 62, 79, 0.34), rgba(85, 28, 39, 0.74)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(212, 129, 142, 0.34);
+}
+
+.theme-build {
+    background:
+        linear-gradient(180deg, rgba(34, 124, 99, 0.32), rgba(24, 71, 53, 0.76)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(118, 211, 173, 0.28);
+}
+
+.theme-release {
+    background:
+        linear-gradient(180deg, rgba(68, 111, 166, 0.34), rgba(28, 58, 96, 0.76)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(135, 176, 230, 0.3);
+}
+
+.theme-runtime {
+    background:
+        linear-gradient(180deg, rgba(184, 139, 43, 0.34), rgba(102, 71, 16, 0.78)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(238, 198, 101, 0.28);
+}
+
+.theme-lifecycle {
+    background:
+        linear-gradient(180deg, rgba(128, 57, 85, 0.32), rgba(70, 28, 45, 0.76)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(206, 128, 158, 0.28);
+}
+
+.theme-neutral {
+    background:
+        linear-gradient(180deg, rgba(72, 96, 128, 0.24), rgba(41, 57, 75, 0.8)),
+        linear-gradient(180deg, rgba(49, 68, 86, 0.88), rgba(37, 50, 65, 0.96));
+    border-color: rgba(170, 192, 221, 0.22);
+}
+
+.page-header.theme-risk h1,
+.page-header.theme-build h1,
+.page-header.theme-release h1,
+.page-header.theme-runtime h1,
+.page-header.theme-lifecycle h1,
+.page-header.theme-neutral h1 {
+    color: #ffffff;
+}
+
+@media (max-width: 900px) {
+    .site-header,
+    .hero,
+    .detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .site-header {
+        border-radius: 28px;
+        align-items: flex-start;
+    }
+}

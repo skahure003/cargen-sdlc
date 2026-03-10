@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% load core_tags %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block content %}
+<section class="detail-layout">
+    <article class="detail-main {{ page.section|default:'neutral'|theme_class }}">
+        <div class="page-header {{ page.section|default:'risk'|theme_class }}">
+            <p class="eyebrow">{{ page.section_title|default:"Framework" }}</p>
+            <h1>{{ page.title }}</h1>
+            {% if page.description %}
+            <p class="lead">{{ page.description }}</p>
+            {% elif page.tldr %}
+            <p class="lead">{{ page.tldr }}</p>
+            {% endif %}
+        </div>
+        <div class="prose">
+            {{ page.body_html|safe }}
+        </div>
+    </article>
+    <aside class="detail-sidebar">
+        {% for label, value in meta_items %}
+        <div class="sidebar-card {{ page.section|default:'risk'|theme_class }}">
+            <span>{{ label }}</span>
+            <strong>{{ value }}</strong>
+        </div>
+        {% endfor %}
+        {% if page.mitigations %}
+        <div class="sidebar-card {{ page.section|default:'risk'|theme_class }}">
+            <span>Mitigations</span>
+            {% for mitigation in page.mitigations %}
+            <a href="{{ mitigation.url }}">{{ mitigation.name }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </aside>
+</section>
+{% endblock %}

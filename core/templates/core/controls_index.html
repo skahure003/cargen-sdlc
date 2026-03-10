@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% load core_tags %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Controls</p>
+    <!-- <h1>{{ page.title }}</h1> -->
+    <div class="prose">
+        {{ page.body_html|safe }}
+    </div>
+</section>
+
+{% for section in sections %}
+<section class="grid-section">
+    <div class="section-head">
+        <h2>{{ section.title }}</h2>
+        <a href="/controls/{{ section.section }}/">Open section</a>
+    </div>
+    <div class="card-grid">
+        {% for item in controls_by_section|get_item:section.section %}
+        <a class="card {{ section.section|theme_class }}" href="{{ item.url }}">
+            <p class="meta">{{ item.control_code }}</p>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.tldr }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+{% endblock %}

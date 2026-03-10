@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+{% load core_tags %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block content %}
+<section class="page-header {{ page.section|default:item_type|theme_class }}">
+    <p class="eyebrow">{{ item_type|title }}</p>
+    <!-- <h1>{{ page.title }}</h1> -->
+    {% if page.body_html %}
+    <div class="prose">
+        {{ page.body_html|safe }}
+    </div>
+    {% endif %}
+</section>
+
+<section class="card-grid">
+    {% for item in items %}
+    <a class="card {{ item.section|default:item_type|theme_class }}" href="{{ item.url }}">
+        {% if item.risk_id %}<p class="meta">{{ item.risk_id }}</p>{% endif %}
+        {% if item.control_code %}<p class="meta">{{ item.control_code }}</p>{% endif %}
+        <h3>{{ item.title }}</h3>
+        {% if item.description %}
+        <p>{{ item.description }}</p>
+        {% elif item.tldr %}
+        <p>{{ item.tldr }}</p>
+        {% endif %}
+    </a>
+    {% endfor %}
+</section>
+{% endblock %}

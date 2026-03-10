@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ site_meta.title }}{% endblock %}</title>
+    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="site-header">
+            <a class="brand" href="/">
+                <span class="brand-mark">CG</span>
+                <span>
+                    <strong>{{ site_meta.company_label }}</strong>
+                    <small>{{ site_meta.title }}</small>
+                </span>
+            </a>
+            <nav class="site-nav">
+                <a href="/">Overview</a>
+                <a href="/templates/">Templates</a>
+                <a href="/background/">Background</a>
+                <a href="/areas/">Areas</a>
+                <a href="/controls/">Controls</a>
+                <a href="/risks/">Risks</a>
+            </nav>
+        </header>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        <footer class="site-footer">
+            <p>{{ site_meta.company_label }} secure software delivery framework</p>
+        </footer>
+    </div>
+</body>
+</html>

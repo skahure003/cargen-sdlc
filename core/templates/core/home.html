@@ -1,0 +1,62 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ site_meta.company_label }} SDLC{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-copy">
+        <p class="eyebrow">Cargen SDLC</p>
+        <h1>{{ site_meta.company_label }} secure software delivery framework</h1>
+        <p class="lead">{{ site_meta.summary }}</p>
+    </div>
+    <div class="hero-card">
+        <div class="metric">
+            <span>{{ areas|length }}</span>
+            <small>Delivery areas</small>
+        </div>
+        <div class="metric">
+            <span>{{ risks|length }}</span>
+            <small>Tracked risks</small>
+        </div>
+        <div class="metric">
+            <span>{{ page.control_count }}</span>
+            <small>Documented controls</small>
+        </div>
+    </div>
+</section>
+
+<section class="content-panel prose">
+    {{ page.body_html|safe }}
+</section>
+
+<section class="grid-section">
+    <div class="section-head">
+        <h2>Control sections</h2>
+        <a href="/controls/">View all controls</a>
+    </div>
+    <div class="card-grid">
+        {% for section in control_sections %}
+        <a class="card" href="/controls/{{ section.section }}/">
+            <h3>{{ section.title }}</h3>
+            <p>{{ section.description }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="grid-section">
+    <div class="section-head">
+        <h2>Risk coverage</h2>
+        <a href="/risks/">Browse risks</a>
+    </div>
+    <div class="card-grid">
+        {% for risk in risks %}
+        <a class="card" href="/risks/{{ risk.slug }}/">
+            <p class="meta">{{ risk.risk_id }}</p>
+            <h3>{{ risk.title }}</h3>
+            <p>{{ risk.description }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
