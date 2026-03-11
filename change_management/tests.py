@@ -1,6 +1,9 @@
 from django.contrib.auth.models import Group, User
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
+
+from core.content import load_site_content
 
 from .models import ApprovalStep, ChangeRequest, ChangeType
 
@@ -22,6 +25,12 @@ class ChangeManagementSmokeTests(TestCase):
     def test_policy_page_loads(self):
         response = self.client.get(reverse("policy"))
         self.assertEqual(response.status_code, 200)
+
+    def test_index_pages_do_not_duplicate_top_level_heading(self):
+        load_site_content.cache_clear()
+        data = load_site_content()
+        self.assertNotIn("<h1>Risks</h1>", data["pages"]["risks_index"]["body_html"])
+        self.assertNotIn("<h1>Controls", data["pages"]["controls_index"]["body_html"])
 
     def test_login_page_loads(self):
         response = self.client.get(reverse("login"))
@@ -92,6 +101,89 @@ class ChangeManagementSmokeTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_requester_only_sees_own_requests(self):
+        other_requester = User.objects.create_user(username="requester_three", password="pass12345")
+        other_requester.groups.add(Group.objects.get(name="Requester"))
+        own_request = ChangeRequest.objects.create(
+            title="Own change",
+            business_justification="Own record.",
+            requester=self.requester,
+            change_type=self.change_type,
+            affected_services="API",
+            implementation_plan="Deploy",
+            test_validation_plan="Test",
+            rollback_plan="Rollback",
+        )
+        other_request = ChangeRequest.objects.create(
+            title="Other change",
+            business_justification="Other record.",
+            requester=other_requester,
+            change_type=self.change_type,
+            affected_services="Worker",
+            implementation_plan="Deploy",
+            test_validation_plan="Test",
+            rollback_plan="Rollback",
+        )
+        self.client.login(username="requester", password="pass12345")
+        list_response = self.client.get(reverse("change_management:request_list"))
+        self.assertContains(list_response, own_request.title)
+        self.assertNotContains(list_response, other_request.title)
+        detail_response = self.client.get(reverse("change_management:request_detail", args=[other_request.pk]))
+        self.assertEqual(detail_response.status_code, 403)
+
+    def test_sequential_approval_blocks_later_step_until_prior_step_completed(self):
+        change_request = ChangeRequest.objects.create(
+            title="Sequential approval test",
+            business_justification="Exercise ordered approvals.",
+            requester=self.requester,
+            change_type=self.change_type,
+            risk_level=ChangeRequest.RISK_MEDIUM,
+            affected_services="Database",
+            implementation_plan="Apply migration",
+            test_validation_plan="Validate schema",
+            rollback_plan="Restore backup",
+            status=ChangeRequest.STATUS_IN_REVIEW,
+        )
+        first_step = ApprovalStep.objects.create(
+            change_request=change_request,
+            name="Peer Review",
+            sequence=1,
+            assigned_role=ApprovalStep.ROLE_REVIEWER,
+        )
+        second_step = ApprovalStep.objects.create(
+            change_request=change_request,
+            name="Change Approval",
+            sequence=2,
+            assigned_role=ApprovalStep.ROLE_APPROVER,
+        )
+
+        self.client.login(username="approver", password="pass12345")
+        blocked_response = self.client.post(
+            reverse("change_management:decide_step", args=[second_step.pk]),
+            {"outcome": ApprovalStep.STATUS_APPROVED, "comments": "Trying to skip ahead."},
+        )
+        self.assertEqual(blocked_response.status_code, 403)
+
+        self.client.logout()
+        self.client.login(username="reviewer", password="pass12345")
+        self.client.post(
+            reverse("change_management:decide_step", args=[first_step.pk]),
+            {"outcome": ApprovalStep.STATUS_APPROVED, "comments": "Reviewed."},
+        )
+
+        self.client.logout()
+        self.client.login(username="approver", password="pass12345")
+        allowed_response = self.client.post(
+            reverse("change_management:decide_step", args=[second_step.pk]),
+            {"outcome": ApprovalStep.STATUS_APPROVED, "comments": "Approved in sequence."},
+        )
+        self.assertEqual(allowed_response.status_code, 302)
+
+    def test_seed_demo_users_command_creates_users(self):
+        User.objects.filter(username="requester_demo").delete()
+        call_command("seed_demo_users", force=True)
+        self.assertTrue(User.objects.filter(username="requester_demo").exists())
 
     def test_approval_step_can_approve_request(self):
         change_request = ChangeRequest.objects.create(

@@ -185,6 +185,7 @@ def render_inline(text: str, current_path: Path, metadata: dict):
 
 def render_markdown(body: str, current_path: Path, metadata: dict):
     body = normalize_text(body)
+    body = body.replace("<--->", "")
     body = re.sub(
         r"\{\{<\s*figure\s+src=\"([^\"]+)\"\s+alt=\"([^\"]*)\"\s*>\}\}",
         lambda match: (
@@ -304,6 +305,10 @@ def page_url(relative_path: Path):
     return "/" + "/".join(parts) + "/"
 
 
+def strip_leading_h1(body_html: str):
+    return re.sub(r"^\s*<h1>.*?</h1>\s*", "", body_html, count=1, flags=re.DOTALL)
+
+
 def build_page(relative_path: Path):
     full_path = SOURCE / "content" / relative_path
     metadata, body = read_markdown(full_path)
@@ -321,11 +326,15 @@ def build_page(relative_path: Path):
         else:
             normalized[key] = value
 
+    body_html = render_markdown(body, full_path, normalized)
+    if relative_path.name == "_index.md":
+        body_html = strip_leading_h1(body_html)
+
     page = {
         **normalized,
         "slug": relative_path.stem if relative_path.stem != "_index" else relative_path.parent.name,
         "url": page_url(relative_path),
-        "body_html": render_markdown(body, full_path, normalized),
+        "body_html": body_html,
     }
     if relative_path.parts and relative_path.parts[0] == "controls" and len(relative_path.parts) > 1:
         page["section"] = relative_path.parts[1]

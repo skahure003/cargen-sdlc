@@ -6,6 +6,7 @@ from . import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("policy/", views.policy, name="policy"),
+    path("policy/download/", views.policy_download, name="policy_download"),
     path("assets/<str:filename>", views.asset, name="asset"),
     path("templates/", views.templates_index, name="templates_index"),
     path("templates/download/<slug:slug>/", views.template_download, name="template_download"),

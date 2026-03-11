@@ -24,8 +24,29 @@ from .models import (
 )
 
 
+OPERATIONAL_GROUPS = ["Reviewer", "Approver", "CAB", "Implementer", "Auditor/Admin"]
+
+
 def has_group(user, group_name: str) -> bool:
     return user.is_authenticated and user.groups.filter(name=group_name).exists()
+
+
+def has_any_group(user, group_names: list[str]) -> bool:
+    return user.is_authenticated and user.groups.filter(name__in=group_names).exists()
+
+
+def can_view_request(user, change_request: ChangeRequest) -> bool:
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or has_group(user, "Auditor/Admin"):
+        return True
+    if change_request.requester_id == user.id:
+        return True
+    if has_any_group(user, ["Reviewer", "Approver", "CAB"]):
+        return True
+    if has_group(user, "Implementer"):
+        return True
+    return False
 
 
 def can_edit_request(user, change_request: ChangeRequest) -> bool:
@@ -76,14 +97,7 @@ def can_assess_risk(user) -> bool:
 def can_add_evidence(user, change_request: ChangeRequest) -> bool:
     if not user.is_authenticated:
         return False
-    if user.is_superuser or has_group(user, "Auditor/Admin"):
-        return True
-    if change_request.requester_id == user.id:
-        return True
-    return any(
-        has_group(user, group_name)
-        for group_name in ["Reviewer", "Approver", "CAB", "Implementer"]
-    )
+    return can_view_request(user, change_request)
 
 
 def dashboard(request):
@@ -118,7 +132,9 @@ def dashboard(request):
 
 @login_required
 def request_list(request):
-    changes = ChangeRequest.objects.select_related("change_type", "requester").all()
+    changes = ChangeRequest.objects.select_related("change_type", "requester")
+    if not (request.user.is_superuser or has_any_group(request.user, OPERATIONAL_GROUPS)):
+        changes = changes.filter(requester=request.user)
     return render(request, "change_management/request_list.html", {"changes": changes})
 
 
@@ -205,6 +221,8 @@ def request_detail(request, pk: int):
         ),
         pk=pk,
     )
+    if not can_view_request(request.user, change_request):
+        raise PermissionDenied
     risk_assessment, _ = ChangeRiskAssessment.objects.get_or_create(
         change_request=change_request,
         defaults={"residual_risk": change_request.risk_level},
@@ -267,6 +285,8 @@ def submit_request(request, pk: int):
 
 @login_required
 def approval_queue(request):
+    if not has_any_group(request.user, ["Reviewer", "Approver", "CAB"]) and not request.user.is_superuser:
+        raise PermissionDenied
     steps = [
         step
         for step in ApprovalStep.objects.select_related("change_request", "assigned_user")
@@ -344,6 +364,8 @@ def transition_request(request, pk: int):
 @login_required
 def add_comment(request, pk: int):
     change_request = get_object_or_404(ChangeRequest, pk=pk)
+    if not can_view_request(request.user, change_request):
+        raise PermissionDenied
     form = ChangeCommentForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         comment = form.save(commit=False)

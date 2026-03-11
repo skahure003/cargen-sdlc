@@ -320,8 +320,19 @@ class ApprovalStep(models.Model):
     def __str__(self):
         return f"{self.change_request} - {self.name}"
 
+    def is_unblocked(self) -> bool:
+        if self.change_request.change_type.default_approval_mode != ChangeType.APPROVAL_SEQUENTIAL:
+            return True
+        previous_required_steps = self.change_request.approval_steps.filter(
+            sequence__lt=self.sequence,
+            required=True,
+        ).exclude(status__in=[self.STATUS_APPROVED, self.STATUS_SKIPPED])
+        return not previous_required_steps.exists()
+
     def is_waiting_for(self, user) -> bool:
         if self.status != self.STATUS_PENDING or not user.is_authenticated:
+            return False
+        if not self.is_unblocked():
             return False
         if self.assigned_user_id == user.id:
             return True
@@ -341,6 +352,8 @@ class ApprovalStep(models.Model):
     def decide(self, *, actor, outcome: str, comments: str = ""):
         if self.status != self.STATUS_PENDING:
             raise ValidationError("This approval step has already been decided.")
+        if not self.is_unblocked():
+            raise ValidationError("This approval step is blocked by an earlier required decision.")
         if outcome not in {self.STATUS_APPROVED, self.STATUS_REJECTED, self.STATUS_SKIPPED}:
             raise ValidationError("Unsupported approval outcome.")
         now = timezone.now()
