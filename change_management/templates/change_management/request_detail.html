@@ -1,0 +1,178 @@
+{% extends "core/base.html" %}
+{% load change_management_tags %}
+
+{% block title %}{{ change_request.change_id }}{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Change Management</p>
+    <h1>{{ change_request.title }}</h1>
+    <p class="lead">{{ change_request.change_id }} · {{ change_request.get_status_display }} · {{ change_request.get_risk_level_display }} risk · {{ change_request.change_type.name }}</p>
+    <div class="hero-actions">
+        {% if can_edit %}
+        <a class="button-link" href="{% url 'change_management:request_update' change_request.pk %}">Edit request</a>
+        {% endif %}
+        {% if change_request.status == 'draft' %}
+        <form method="post" action="{% url 'change_management:submit_request' change_request.pk %}">
+            {% csrf_token %}
+            <button class="button-link" type="submit">Submit for review</button>
+        </form>
+        {% endif %}
+    </div>
+</section>
+
+<section class="detail-layout">
+    <div class="detail-main prose">
+        <h2>Business justification</h2>
+        <p>{{ change_request.business_justification|linebreaksbr }}</p>
+
+        <h2>Affected systems and services</h2>
+        <p>{{ change_request.affected_services|linebreaksbr }}</p>
+
+        <h2>Implementation plan</h2>
+        <p>{{ change_request.implementation_plan|linebreaksbr }}</p>
+
+        <h2>Test and validation plan</h2>
+        <p>{{ change_request.test_validation_plan|linebreaksbr }}</p>
+
+        <h2>Rollback plan</h2>
+        <p>{{ change_request.rollback_plan|linebreaksbr }}</p>
+
+        <h2>Impact review</h2>
+        <table>
+            <tbody>
+                <tr><th>Outage impact</th><td>{{ change_request.outage_impact|default:"Not recorded"|linebreaksbr }}</td></tr>
+                <tr><th>Security impact</th><td>{{ change_request.security_impact|default:"Not recorded"|linebreaksbr }}</td></tr>
+                <tr><th>Privacy impact</th><td>{{ change_request.privacy_impact|default:"Not recorded"|linebreaksbr }}</td></tr>
+                <tr><th>Compliance impact</th><td>{{ change_request.compliance_impact|default:"Not recorded"|linebreaksbr }}</td></tr>
+                <tr><th>Linked items</th><td>{{ change_request.linked_items|default:"Not recorded"|linebreaksbr }}</td></tr>
+                <tr><th>Post-implementation results</th><td>{{ change_request.post_implementation_results|default:"Not recorded"|linebreaksbr }}</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Implementation tasks</h2>
+        <ul>
+            {% for task in change_request.implementation_tasks.all %}
+            <li>{{ task.title }} · {{ task.get_status_display }}{% if task.owner %} · {{ task.owner.get_username }}{% endif %}</li>
+            {% empty %}
+            <li>No implementation tasks recorded.</li>
+            {% endfor %}
+        </ul>
+
+        <h2>Approval workflow</h2>
+        <ul>
+            {% for step in change_request.approval_steps.all %}
+            <li>
+                <strong>{{ step.name }}</strong> · {{ step.get_status_display }}
+                {% if step.assigned_user %} · {{ step.assigned_user.get_username }}{% endif %}
+                <br>
+                Role: {{ step.get_assigned_role_display }}
+            </li>
+            {% empty %}
+            <li>No approval steps configured.</li>
+            {% endfor %}
+        </ul>
+
+        <h2>Evidence</h2>
+        <ul>
+            {% for item in change_request.evidence.all %}
+            <li>
+                {{ item.title }} · {{ item.get_evidence_type_display }}
+                {% if item.external_url %}<a href="{{ item.external_url }}">Link</a>{% endif %}
+                {% if item.file %}<a href="{{ item.file.url }}">File</a>{% endif %}
+            </li>
+            {% empty %}
+            <li>No evidence attached.</li>
+            {% endfor %}
+        </ul>
+
+        <h2>Comments</h2>
+        <ul>
+            {% for comment in change_request.comments.all %}
+            <li><strong>{% if comment.author %}{{ comment.author.get_username }}{% else %}System{% endif %}</strong> · {{ comment.created_at }}<br>{{ comment.comment|linebreaksbr }}</li>
+            {% empty %}
+            <li>No comments recorded.</li>
+            {% endfor %}
+        </ul>
+
+        <h2>Audit trail</h2>
+        <ul>
+            {% for item in change_request.activity.all %}
+            <li>{{ item.created_at }} · {{ item.summary }}{% if item.actor %} · {{ item.actor.get_username }}{% endif %}</li>
+            {% empty %}
+            <li>No activity recorded.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <aside class="detail-sidebar">
+        <div class="sidebar-card">
+            <span>Request metadata</span>
+            <strong>Requester</strong>
+            <div>{{ change_request.requester.get_username }}</div>
+            <strong>Window</strong>
+            <div>{{ change_request.planned_start|default:"Not set" }} to {{ change_request.planned_end|default:"Not set" }}</div>
+        </div>
+
+        {% if available_transitions %}
+        <div class="sidebar-card">
+            <span>Status transition</span>
+            <strong>Move the request to the next lifecycle state when the operational gate is complete.</strong>
+            <form method="post" action="{% url 'change_management:transition_request' change_request.pk %}" class="cm-form compact-form">
+                {% csrf_token %}
+                {{ transition_form.as_p }}
+                <button class="button-link" type="submit">Apply transition</button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if can_assess_risk %}
+        <div class="sidebar-card">
+            <span>Risk assessment</span>
+            <strong>Capture impact, likelihood, and residual risk before approval or scheduling.</strong>
+            <form method="post" action="{% url 'change_management:update_risk' change_request.pk %}" class="cm-form compact-form">
+                {% csrf_token %}
+                {{ risk_form.as_p }}
+                <button class="button-link" type="submit">Save risk</button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if can_add_evidence %}
+        <div class="sidebar-card">
+            <span>Add evidence</span>
+            <strong>Attach deployment proof, screenshots, test output, or external release links to support auditability.</strong>
+            <form method="post" action="{% url 'change_management:add_evidence' change_request.pk %}" enctype="multipart/form-data" class="cm-form compact-form">
+                {% csrf_token %}
+                {{ evidence_form.as_p }}
+                <button class="button-link" type="submit">Attach evidence</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="sidebar-card">
+            <span>Add comment</span>
+            <form method="post" action="{% url 'change_management:add_comment' change_request.pk %}" class="cm-form compact-form">
+                {% csrf_token %}
+                {{ comment_form.as_p }}
+                <button class="button-link" type="submit">Post comment</button>
+            </form>
+        </div>
+
+        {% for step in change_request.approval_steps.all %}
+            {% with form=decision_forms|get_item:step.id %}
+                {% if form %}
+                <div class="sidebar-card">
+                    <span>{{ step.name }}</span>
+                    <form method="post" action="{% url 'change_management:decide_step' step.pk %}" class="cm-form compact-form">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button class="button-link" type="submit">Record decision</button>
+                    </form>
+                </div>
+                {% endif %}
+            {% endwith %}
+        {% endfor %}
+    </aside>
+</section>
+{% endblock %}

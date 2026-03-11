@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Change Management</p>
+    <h1>{{ page_title }}</h1>
+    <p class="lead">Capture change scope, risk, implementation details, and rollback readiness before the request enters approval.</p>
+</section>
+
+<section class="detail-layout">
+    <div class="detail-main">
+        <form method="post" class="cm-form">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="form-grid">
+                {% for field in form %}
+                <div class="form-field {% if field.name == 'business_justification' or field.name == 'implementation_plan' or field.name == 'test_validation_plan' or field.name == 'rollback_plan' or field.name == 'affected_services' or field.name == 'outage_impact' or field.name == 'security_impact' or field.name == 'privacy_impact' or field.name == 'compliance_impact' or field.name == 'linked_items' or field.name == 'post_implementation_results' %}span-2{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                    {{ field.errors }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <h2>Implementation tasks</h2>
+            {{ task_formset.management_form }}
+            <div class="task-list">
+                {% for task_form in task_formset %}
+                <div class="task-item">
+                    {% for hidden in task_form.hidden_fields %}{{ hidden }}{% endfor %}
+                    {% for field in task_form.visible_fields %}
+                    <div class="form-field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="hero-actions">
+                <button class="button-link" type="submit">Save request</button>
+                {% if change_request %}
+                <a class="button-link" href="{% url 'change_management:request_detail' change_request.pk %}">Back to request</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    <aside class="detail-sidebar">
+        <div class="sidebar-card">
+            <span>Standardized capture</span>
+            <strong>Collect justification, implementation, validation, rollback, impact, and linked release evidence.</strong>
+        </div>
+        <div class="sidebar-card">
+            <span>Approval workflow</span>
+            <strong>Approval steps are created after save based on change type, template, and risk profile.</strong>
+        </div>
+    </aside>
+</section>
+{% endblock %}

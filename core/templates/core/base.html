@@ -8,7 +8,7 @@
     <link rel="icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="{% static 'core/styles.css' %}">
 </head>
-<body>
+<body class="{% if request.user.is_authenticated and '/changes/' in request.path %}auth-change-theme{% endif %}">
     <div class="page-shell">
         <header class="site-header">
             <a class="brand" href="/">
@@ -19,16 +19,46 @@
                 </span>
             </a>
             <nav class="site-nav">
-                <a href="/">Overview</a>
+                <a href="/policy/">SDLC Policy</a>
                 <a href="/templates/">Templates</a>
-                <a href="/background/">Background</a>
-                <a href="/areas/">Areas</a>
-                <a href="/controls/">Controls</a>
-                <a href="/risks/">Risks</a>
+                <a href="/changes/">Change Management</a>
             </nav>
+            <div class="auth-actions">
+                {% if request.user.is_authenticated %}
+                <span class="auth-user">{{ request.user.get_username }}</span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="button-link" type="submit">Logout</button>
+                </form>
+                {% else %}
+                <a class="button-link" href="{% url 'login' %}?next={{ request.path }}">Login</a>
+                {% endif %}
+            </div>
         </header>
-        <main>
-            {% block content %}{% endblock %}
+        {% if messages %}
+        <section class="message-stack">
+            {% for message in messages %}
+            <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+        <main class="site-main">
+            <aside class="site-sidebar">
+                <div class="sidebar-card sdlc-sidebar">
+                    <span>SDLC Navigation</span>
+                    <strong>Reference library</strong>
+                    <nav class="sidebar-nav">
+                        <a class="{% if request.path == '/' %}is-active{% endif %}" href="/">Overview</a>
+                        <a class="{% if '/background/' in request.path %}is-active{% endif %}" href="/background/">Background</a>
+                        <a class="{% if '/areas/' in request.path %}is-active{% endif %}" href="/areas/">Areas</a>
+                        <a class="{% if '/controls/' in request.path %}is-active{% endif %}" href="/controls/">Controls</a>
+                        <a class="{% if '/risks/' in request.path %}is-active{% endif %}" href="/risks/">Risks</a>
+                    </nav>
+                </div>
+            </aside>
+            <section class="site-content">
+                {% block content %}{% endblock %}
+            </section>
         </main>
         <footer class="site-footer">
             <p>{{ site_meta.company_label }} secure software delivery framework</p>

@@ -1,0 +1,90 @@
+{% extends "core/base.html" %}
+
+{% block title %}Change Management{% endblock %}
+
+{% block content %}
+<section class="hero change-hero">
+    <div class="hero-copy">
+        <p class="eyebrow">Change Management</p>
+        <h1>Standardized change submission, review, approval, and evidence capture</h1>
+        <p class="lead">Operational change records live in Django models while the SDLC site remains the governance layer. Use this workspace to raise requests, route approvals, and preserve an audit-ready trail.</p>
+        <div class="hero-actions">
+            <a class="button-link" href="{% url 'change_management:request_create' %}">New change request</a>
+            <a class="button-link" href="{% url 'change_management:approval_queue' %}">Approval queue</a>
+        </div>
+    </div>
+    <div class="hero-card">
+        <div class="metric">
+            <span>{{ metrics.total|default:0 }}</span>
+            <small>Total requests</small>
+        </div>
+        <div class="metric">
+            <span>{{ metrics.in_review|default:0 }}</span>
+            <small>In review</small>
+        </div>
+        <div class="metric">
+            <span>{{ queue_count }}</span>
+            <small>Pending approvals</small>
+        </div>
+    </div>
+</section>
+
+<section class="grid-section">
+    <div class="section-head">
+        <h2>Workflow model</h2>
+        <a href="/areas/">Governance areas</a>
+    </div>
+    <div class="card-grid">
+        {% for change_type in change_types %}
+        <article class="card theme-neutral">
+            <p class="meta">{{ change_type.default_approval_mode|title }}</p>
+            <h3>{{ change_type.name }}</h3>
+            <p>{{ change_type.description|default:"Standardized change intake and approval path." }}</p>
+        </article>
+        {% empty %}
+        <article class="card theme-neutral">
+            <h3>No change types configured yet</h3>
+            <p>Create standard, normal, and emergency change types in admin to shape workflow templates.</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="grid-section">
+    <div class="section-head">
+        <h2>Recent requests</h2>
+        <a href="{% url 'change_management:request_list' %}">View all</a>
+    </div>
+    <div class="card-grid">
+        {% for change in changes %}
+        <a class="card theme-neutral" href="{% url 'change_management:request_detail' change.pk %}">
+            <p class="meta">{{ change.change_id }} · {{ change.get_status_display }}</p>
+            <h3>{{ change.title }}</h3>
+            <p>{{ change.business_justification|truncatechars:160 }}</p>
+        </a>
+        {% empty %}
+        <article class="card theme-neutral">
+            <h3>No changes yet</h3>
+            <p>Start by creating a request and defining its approval workflow.</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+{% if my_changes %}
+<section class="grid-section">
+    <div class="section-head">
+        <h2>My requests</h2>
+    </div>
+    <div class="card-grid">
+        {% for change in my_changes %}
+        <a class="card" href="{% url 'change_management:request_detail' change.pk %}">
+            <p class="meta">{{ change.change_id }} · {{ change.get_status_display }}</p>
+            <h3>{{ change.title }}</h3>
+            <p>{{ change.affected_services|truncatechars:120 }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

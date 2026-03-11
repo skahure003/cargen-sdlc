@@ -24,6 +24,20 @@ def home(request):
     )
 
 
+def policy(request):
+    data = load_site_content()
+    return render(
+        request,
+        "core/policy.html",
+        {
+            "page": {
+                "title": "SDLC Policy",
+                "body_html": data["pages"]["home"]["body_html"],
+            }
+        },
+    )
+
+
 def background_index(request):
     data = load_site_content()
     return render(

@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+
+{% block title %}Approval Queue{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Change Management</p>
+    <h1>Approval queue</h1>
+    <p class="lead">Pending review and approval steps assigned through groups or direct ownership.</p>
+</section>
+
+<section class="grid-section">
+    <div class="card-grid">
+        {% for step in steps %}
+        <article class="card theme-neutral">
+            <p class="meta">{{ step.change_request.change_id }} · {{ step.get_assigned_role_display }}</p>
+            <h3>{{ step.name }}</h3>
+            <p>{{ step.change_request.title }}</p>
+            <a href="{% url 'change_management:request_detail' step.change_request.pk %}">Open request</a>
+        </article>
+        {% empty %}
+        <article class="card theme-neutral">
+            <h3>Queue is clear</h3>
+            <p>No pending approval steps are currently assigned to you.</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

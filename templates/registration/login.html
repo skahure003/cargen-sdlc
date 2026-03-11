@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Access Control</p>
+    <h1>Sign in</h1>
+    <p class="lead">Authenticate to submit, review, approve, and audit change requests.</p>
+</section>
+
+<section class="detail-layout">
+    <div class="detail-main">
+        <form method="post" class="cm-form">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="form-grid">
+                {% for field in form %}
+                <div class="form-field span-2">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+                {% endfor %}
+            </div>
+            {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+            <div class="hero-actions">
+                <button class="button-link" type="submit">Sign in</button>
+            </div>
+        </form>
+    </div>
+    <aside class="detail-sidebar">
+        <div class="sidebar-card">
+            <span>Roles</span>
+            <strong>Requester, Reviewer, Approver, CAB, Implementer, and Auditor/Admin access is controlled through Django groups.</strong>
+        </div>
+    </aside>
+</section>
+{% endblock %}

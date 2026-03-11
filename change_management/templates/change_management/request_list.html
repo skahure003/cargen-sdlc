@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+
+{% block title %}Change Requests{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Change Management</p>
+    <h1>Change requests</h1>
+    <p class="lead">Track planned work, approval state, implementation readiness, and post-change evidence in one place.</p>
+</section>
+
+<section class="grid-section">
+    <div class="section-head">
+        <h2>All requests</h2>
+        <a href="{% url 'change_management:request_create' %}">New request</a>
+    </div>
+    <div class="card-grid">
+        {% for change in changes %}
+        <a class="card theme-neutral" href="{% url 'change_management:request_detail' change.pk %}">
+            <p class="meta">{{ change.change_id }} · {{ change.get_status_display }} · {{ change.get_risk_level_display }}</p>
+            <h3>{{ change.title }}</h3>
+            <p>{{ change.affected_services|truncatechars:160 }}</p>
+        </a>
+        {% empty %}
+        <article class="card theme-neutral">
+            <h3>No requests found</h3>
+            <p>Create the first change request to start the workflow.</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
