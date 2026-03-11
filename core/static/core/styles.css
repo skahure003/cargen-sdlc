@@ -480,6 +480,18 @@ body.auth-change-theme .sdlc-sidebar {
     margin: 0;
 }
 
+.detail-prose::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.detail-prose figure:first-of-type {
+    float: right;
+    width: min(360px, 42%);
+    margin: 0 0 20px 28px;
+}
+
 .prose p,
 .prose ul,
 .prose ol,
@@ -723,6 +735,12 @@ body.auth-change-theme .button-link:hover {
     .controls-overview {
         min-height: 0;
         padding-right: 0;
+    }
+
+    .detail-prose figure:first-of-type {
+        float: none;
+        width: 100%;
+        margin: 0 0 20px;
     }
 
     .site-header {
