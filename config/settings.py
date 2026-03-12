@@ -23,7 +23,7 @@ TESTING = "test" in sys.argv
 # =============================================================================
 # SECURITY SETTINGS
 # =============================================================================
-_allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1", "cargen.5.189.173.50.sslip.io/")
+_allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,cargen.5.189.173.50.sslip.io")
 ALLOWED_HOSTS = [item.strip() for item in _allowed_hosts_env.split(",") if item.strip()]
 
 # CSRF Trusted Origins
