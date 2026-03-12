@@ -7,6 +7,13 @@ import sys
 import logging
 from pathlib import Path
 import dj_database_url
+from dotenv import load_dotenv
+
+# Build paths inside the project
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / ".env")
 
 logger = logging.getLogger(__name__)
 
