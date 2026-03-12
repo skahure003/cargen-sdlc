@@ -2,3 +2,4 @@ Django>=5.1,<6.0
 gunicorn>=21.0,<22.0
 psycopg[binary]>=3.2,<4.0
 whitenoise>=6.8,<7.0
+dj-database-url>=2.0,<3.0

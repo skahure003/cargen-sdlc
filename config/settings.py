@@ -6,7 +6,7 @@ import os
 import sys
 import logging
 from pathlib import Path
-from urllib.parse import urlparse
+import dj_database_url
 
 logger = logging.getLogger(__name__)
 
@@ -101,59 +101,9 @@ TEMPLATES = [
 # =============================================================================
 # DATABASE CONFIGURATION
 # =============================================================================
-def build_database_config():
-    """
-    Build database configuration from DATABASE_URL or individual DB_* environment variables.
-    Supports PostgreSQL, SQLite, and URL-based configuration.
-    """
-    database_url = os.environ.get("DATABASE_URL", "").strip()
-    
-    if database_url:
-        parsed = urlparse(database_url)
-        if parsed.scheme in {"postgres", "postgresql"}:
-            return {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": parsed.path.lstrip("/"),
-                "USER": parsed.username or "",
-                "PASSWORD": parsed.password or "",
-                "HOST": parsed.hostname or "",
-                "PORT": str(parsed.port or "5432"),
-                "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
-                "OPTIONS": {
-                    "sslmode": os.environ.get("DB_SSLMODE", "prefer"),
-                },
-            }
-        if parsed.scheme == "sqlite":
-            sqlite_path = parsed.path.lstrip("/") or "db.sqlite3"
-            return {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / sqlite_path,
-            }
-
-    # Use individual DB_* environment variables
-    if os.environ.get("DB_HOST"):
-        return {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ.get("DB_NAME", "cargen_sdlc"),
-            "USER": os.environ.get("DB_USER", "postgres"),
-            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
-            "HOST": os.environ.get("DB_HOST", "localhost"),
-            "PORT": os.environ.get("DB_PORT", "5432"),
-            "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
-            "OPTIONS": {
-                "sslmode": os.environ.get("DB_SSLMODE", "prefer"),
-            },
-        }
-
-    # Default to SQLite
-    return {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-
 
 DATABASES = {
-    "default": build_database_config()
+    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
 }
 
 # =============================================================================
