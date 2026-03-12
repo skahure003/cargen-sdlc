@@ -17,13 +17,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # CORE SETTINGS
 # =============================================================================
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-cargen-sdlc-local-key")
-DEBUG = os.environ.get("DEBUG", "1") == "1"
+DEBUG = os.environ.get("DEBUG", True) == True
 TESTING = "test" in sys.argv
 
 # =============================================================================
 # SECURITY SETTINGS
 # =============================================================================
-_allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1")
+_allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1", "cargen.5.189.173.50.sslip.io/")
 ALLOWED_HOSTS = [item.strip() for item in _allowed_hosts_env.split(",") if item.strip()]
 
 # CSRF Trusted Origins
@@ -35,7 +35,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 # In development also allow *.localhost and *.lvh.me for subdomain testing
 if DEBUG:
-    for _dev_host in ['.localhost', '.lvh.me', 'localhost', '127.0.0.1']:
+    for _dev_host in ['.localhost', '.lvh.me', 'localhost', '127.0.0.1', 'cargen.5.189.173.50.sslip.io/']:
         if _dev_host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(_dev_host)
 
