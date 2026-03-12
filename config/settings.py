@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file
-load_dotenv(BASE_DIR / ".env")
+# Load environment variables from .env file.
+# Override inherited shell vars so local development uses the project config.
+load_dotenv(BASE_DIR / ".env", override=True)
 
 logger = logging.getLogger(__name__)
 
@@ -24,27 +25,32 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # CORE SETTINGS
 # =============================================================================
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-cargen-sdlc-local-key")
-DEBUG = os.environ.get("DEBUG", True) == True
+DEBUG = os.environ.get("DEBUG", "True").strip().lower() in {"1", "true", "yes", "on"}
 TESTING = "test" in sys.argv
 
 # =============================================================================
 # SECURITY SETTINGS
 # =============================================================================
 _allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,cargen.5.189.173.50.sslip.io")
-ALLOWED_HOSTS = [item.strip() for item in _allowed_hosts_env.split(",") if item.strip()]
+ALLOWED_HOSTS = [item.strip().rstrip("/") for item in _allowed_hosts_env.split(",") if item.strip()]
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip() 
+    origin.strip().rstrip("/")
     for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") 
     if origin.strip()
 ]
 
 # In development also allow *.localhost and *.lvh.me for subdomain testing
 if DEBUG:
-    for _dev_host in ['.localhost', '.lvh.me', 'localhost', '127.0.0.1', 'cargen.5.189.173.50.sslip.io/']:
+    for _dev_host in ['.localhost', '.lvh.me', 'localhost', '127.0.0.1', 'cargen.5.189.173.50.sslip.io']:
         if _dev_host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(_dev_host)
+
+if TESTING:
+    for _test_host in ["testserver", "localhost", "127.0.0.1"]:
+        if _test_host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_test_host)
 
 # Security settings for production
 if not DEBUG:

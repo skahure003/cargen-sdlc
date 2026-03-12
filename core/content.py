@@ -1,11 +1,13 @@
 import html
+import os
 import re
 from functools import lru_cache
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SOURCE = BASE_DIR.parent / "kosli-sdlc"
+SOURCE = Path(os.environ.get("SDLC_CONTENT_SOURCE", BASE_DIR)).resolve()
+CONTENT_ROOT = SOURCE / "content"
 
 SITE_META = {
     "title": "Car & General Software Development Lifecycle",
@@ -149,7 +151,7 @@ def resolve_ref(target: str, current_path: Path):
     cleaned = target.strip().strip('"').strip("'")
     if cleaned.endswith(".md"):
         target_path = (current_path.parent / cleaned).resolve()
-        relative = target_path.relative_to(SOURCE / "content")
+        relative = target_path.relative_to(CONTENT_ROOT)
         parts = list(relative.parts)
         if parts[-1] == "_index.md":
             parts = parts[:-1]
@@ -310,7 +312,7 @@ def strip_leading_h1(body_html: str):
 
 
 def build_page(relative_path: Path):
-    full_path = SOURCE / "content" / relative_path
+    full_path = CONTENT_ROOT / relative_path
     metadata, body = read_markdown(full_path)
     normalized = {}
     for key, value in metadata.items():
@@ -356,24 +358,24 @@ def load_site_content():
 
     background = sorted(
         [
-            build_page(path.relative_to(SOURCE / "content"))
-            for path in (SOURCE / "content" / "background").glob("*.md")
+            build_page(path.relative_to(CONTENT_ROOT))
+            for path in (CONTENT_ROOT / "background").glob("*.md")
             if path.name != "_index.md"
         ],
         key=lambda item: item.get("weight", 9999),
     )
     areas = sorted(
         [
-            build_page(path.relative_to(SOURCE / "content"))
-            for path in (SOURCE / "content" / "areas").glob("**/*.md")
+            build_page(path.relative_to(CONTENT_ROOT))
+            for path in (CONTENT_ROOT / "areas").glob("**/*.md")
             if path.name != "_index.md"
         ],
         key=lambda item: item.get("weight", 9999),
     )
     risks = sorted(
         [
-            build_page(path.relative_to(SOURCE / "content"))
-            for path in (SOURCE / "content" / "risks").glob("*.md")
+            build_page(path.relative_to(CONTENT_ROOT))
+            for path in (CONTENT_ROOT / "risks").glob("*.md")
             if path.name != "_index.md"
         ],
         key=lambda item: item.get("weight", 9999),
@@ -393,8 +395,8 @@ def load_site_content():
             }
         )
         section_controls = [
-            build_page(path.relative_to(SOURCE / "content"))
-            for path in (SOURCE / "content" / "controls" / section).glob("*.md")
+            build_page(path.relative_to(CONTENT_ROOT))
+            for path in (CONTENT_ROOT / "controls" / section).glob("*.md")
             if path.name != "_index.md"
         ]
         controls.extend(sorted(section_controls, key=lambda item: item.get("weight", 9999)))

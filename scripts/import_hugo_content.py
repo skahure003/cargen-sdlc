@@ -1,11 +1,12 @@
 import html
 import json
+import os
 import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT.parent / "kosli-sdlc"
+SOURCE = Path(os.environ.get("SDLC_CONTENT_SOURCE", ROOT)).resolve()
 OUTPUT = ROOT / "data" / "site_content.json"
 
 SITE_META = {
