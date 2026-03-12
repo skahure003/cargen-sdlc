@@ -6,9 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 DEMO_USERS = [
     ("requester_demo", "Requester", "Requester123!"),
-    ("reviewer_demo", "Reviewer", "Reviewer123!"),
     ("approver_demo", "Approver", "Approver123!"),
-    ("cab_demo", "CAB", "Cab123456!"),
     ("implementer_demo", "Implementer", "Implementer123!"),
     ("auditor_demo", "Auditor/Admin", "Auditor123!"),
 ]

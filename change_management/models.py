@@ -166,7 +166,7 @@ class ChangeRequest(models.Model):
 
     TRANSITIONS = {
         STATUS_DRAFT: {STATUS_SUBMITTED, STATUS_CANCELLED},
-        STATUS_SUBMITTED: {STATUS_IN_REVIEW, STATUS_CANCELLED},
+        STATUS_SUBMITTED: {STATUS_APPROVED, STATUS_REJECTED, STATUS_CANCELLED},
         STATUS_IN_REVIEW: {STATUS_APPROVED, STATUS_REJECTED, STATUS_CANCELLED},
         STATUS_APPROVED: {STATUS_SCHEDULED, STATUS_CANCELLED},
         STATUS_REJECTED: {STATUS_DRAFT, STATUS_CANCELLED},
@@ -553,32 +553,60 @@ class ChangeActivity(ImmutableAuditModel):
         return f"{self.change_request} - {self.summary}"
 
 
+class ChangeNotification(models.Model):
+    CATEGORY_SUBMISSION = "submission"
+    CATEGORY_APPROVAL = "approval"
+    CATEGORY_REJECTION = "rejection"
+    CATEGORY_SCHEDULE = "schedule"
+    CATEGORY_CHOICES = [
+        (CATEGORY_SUBMISSION, "Submission"),
+        (CATEGORY_APPROVAL, "Approval"),
+        (CATEGORY_REJECTION, "Rejection"),
+        (CATEGORY_SCHEDULE, "Schedule"),
+    ]
+
+    change_request = models.ForeignKey(ChangeRequest, on_delete=models.CASCADE, related_name="notifications")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="change_notifications",
+    )
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    message = models.CharField(max_length=255)
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.message}"
+
+
 def default_approval_blueprint(change_type: ChangeType, risk_level: str) -> list[dict]:
-    steps = [{"name": "Peer Review", "sequence": 1, "assigned_role": ApprovalStep.ROLE_REVIEWER}]
-    requires_cab = risk_level in {ChangeRequest.RISK_HIGH, ChangeRequest.RISK_CRITICAL}
-    if change_type.is_preapproved:
-        return steps
-    steps.append({"name": "Change Approval", "sequence": 2, "assigned_role": ApprovalStep.ROLE_APPROVER})
-    if requires_cab or change_type.requires_retro_review:
-        steps.append({"name": "CAB Review", "sequence": 3, "assigned_role": ApprovalStep.ROLE_CAB})
-    return steps
+    return [{"name": "Final Approval", "sequence": 1, "assigned_role": ApprovalStep.ROLE_APPROVER}]
 
 
 @transaction.atomic
 def initialize_workflow(change_request: ChangeRequest):
     if change_request.approval_steps.exists():
         return
-    blueprint = (
-        change_request.template.default_approval_steps
-        if change_request.template and change_request.template.default_approval_steps
-        else default_approval_blueprint(change_request.change_type, change_request.risk_level)
-    )
+    blueprint = default_approval_blueprint(change_request.change_type, change_request.risk_level)
     for item in blueprint:
+        role = item.get("assigned_role", ApprovalStep.ROLE_APPROVER)
+        default_group = {
+            ApprovalStep.ROLE_REQUESTER: "Requester",
+            ApprovalStep.ROLE_REVIEWER: "Reviewer",
+            ApprovalStep.ROLE_APPROVER: "Approver",
+            ApprovalStep.ROLE_IMPLEMENTER: "Implementer",
+            ApprovalStep.ROLE_AUDITOR: "Auditor/Admin",
+            ApprovalStep.ROLE_CAB: "CAB",
+        }.get(role, "")
         ApprovalStep.objects.create(
             change_request=change_request,
             name=item["name"],
             sequence=item["sequence"],
-            assigned_role=item.get("assigned_role", ApprovalStep.ROLE_REVIEWER),
-            assigned_group=item.get("assigned_group", ""),
+            assigned_role=role,
+            assigned_group=item.get("assigned_group", default_group),
             required=item.get("required", True),
         )

@@ -23,7 +23,7 @@ class ChangeRequestForm(forms.ModelForm):
         "security_impact": "Capture any security implications, control changes, or risk introduced by this change.",
         "privacy_impact": "Note whether personal data, access patterns, or data flows are affected.",
         "compliance_impact": "Document any policy, regulatory, audit, or governance considerations.",
-        "linked_items": "Reference related tickets, repositories, release IDs, deployment jobs, or CAB records.",
+        "linked_items": "Reference related tickets, repositories, release IDs, deployment jobs, or approvals.",
         "post_implementation_results": "After implementation, record the outcome, validation evidence, incidents, or follow-up actions.",
     }
 
@@ -67,7 +67,7 @@ class ChangeRequestForm(forms.ModelForm):
 class ChangeRiskAssessmentForm(forms.ModelForm):
     class Meta:
         model = ChangeRiskAssessment
-        fields = ["impact_summary", "likelihood_summary", "residual_risk", "cab_review_required"]
+        fields = ["impact_summary", "likelihood_summary", "residual_risk"]
 
 
 class ApprovalDecisionForm(forms.Form):
@@ -75,7 +75,6 @@ class ApprovalDecisionForm(forms.Form):
         choices=[
             (ApprovalStep.STATUS_APPROVED, "Approve"),
             (ApprovalStep.STATUS_REJECTED, "Reject"),
-            (ApprovalStep.STATUS_SKIPPED, "Skip"),
         ]
     )
     comments = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)

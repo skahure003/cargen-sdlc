@@ -6,6 +6,7 @@ from .models import (
     ChangeActivity,
     ChangeComment,
     ChangeEvidence,
+    ChangeNotification,
     ChangeRequest,
     ChangeRiskAssessment,
     ChangeTemplate,
@@ -105,3 +106,11 @@ class ChangeCommentAdmin(admin.ModelAdmin):
     list_display = ("change_request", "author", "is_system", "created_at")
     list_filter = ("is_system",)
     search_fields = ("change_request__change_id", "comment")
+
+
+@admin.register(ChangeNotification)
+class ChangeNotificationAdmin(admin.ModelAdmin):
+    list_display = ("change_request", "user", "category", "message", "read_at", "created_at")
+    list_filter = ("category", "read_at")
+    search_fields = ("change_request__change_id", "user__username", "message")
+    readonly_fields = ("created_at",)

@@ -1,12 +1,12 @@
 {% extends "core/base.html" %}
 
-{% block title %}Sign In{% endblock %}
+{% block title %}Create Account{% endblock %}
 
 {% block content %}
 <section class="page-header theme-neutral">
     <p class="eyebrow">Access Control</p>
-    <h1>Sign in</h1>
-    <p class="lead">Authenticate to submit, review, approve, and audit change requests.</p>
+    <h1>Create account</h1>
+    <p class="lead">Register a requester account to submit and track change requests.</p>
 </section>
 
 <section class="detail-layout">
@@ -19,23 +19,21 @@
                 <div class="form-field span-2">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
+                    {{ field.help_text }}
                     {{ field.errors }}
                 </div>
                 {% endfor %}
             </div>
-            {% if next %}
-            <input type="hidden" name="next" value="{{ next }}">
-            {% endif %}
             <div class="hero-actions">
-                <button class="button-link" type="submit">Sign in</button>
-                <a class="button-link button-secondary" href="{% url 'register' %}">Create account</a>
+                <button class="button-link" type="submit">Create account</button>
+                <a class="button-link button-secondary" href="{% url 'login' %}">Back to login</a>
             </div>
         </form>
     </div>
     <aside class="detail-sidebar">
         <div class="sidebar-card">
-            <span>Roles</span>
-            <strong>Requester, Approver, Implementer, and Auditor/Admin access is controlled through Django groups.</strong>
+            <span>Default access</span>
+            <strong>New registrations are created as Requesters and are redirected to Change Management after sign-up.</strong>
         </div>
     </aside>
 </section>

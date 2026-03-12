@@ -14,90 +14,26 @@ from .forms import (
     ImplementationTaskFormSet,
     StatusTransitionForm,
 )
-from .models import (
-    ApprovalStep,
-    ChangeActivity,
-    ChangeRequest,
-    ChangeRiskAssessment,
-    ChangeType,
-    initialize_workflow,
+from .models import ApprovalStep, ChangeActivity, ChangeComment, ChangeEvidence, ChangeNotification, ChangeRequest, ChangeRiskAssessment, ChangeType
+from .services.workflow import (
+    can_add_evidence,
+    can_assess_risk,
+    can_edit_request,
+    can_transition,
+    can_view_request,
+    create_change_request,
+    decide_approval_step,
+    has_any_group,
+    has_group,
+    pending_steps_for_user,
+    step_is_assigned_to_user,
+    submit_change_request,
+    transition_change_request,
+    get_risk_assessment,
+    update_change_request,
+    update_risk as update_risk_workflow,
+    visible_requests_for_user,
 )
-
-
-OPERATIONAL_GROUPS = ["Reviewer", "Approver", "CAB", "Implementer", "Auditor/Admin"]
-
-
-def has_group(user, group_name: str) -> bool:
-    return user.is_authenticated and user.groups.filter(name=group_name).exists()
-
-
-def has_any_group(user, group_names: list[str]) -> bool:
-    return user.is_authenticated and user.groups.filter(name__in=group_names).exists()
-
-
-def can_view_request(user, change_request: ChangeRequest) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser or has_group(user, "Auditor/Admin"):
-        return True
-    if change_request.requester_id == user.id:
-        return True
-    if has_any_group(user, ["Reviewer", "Approver", "CAB"]):
-        return True
-    if has_group(user, "Implementer"):
-        return True
-    return False
-
-
-def can_edit_request(user, change_request: ChangeRequest) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser or has_group(user, "Auditor/Admin"):
-        return True
-    return change_request.requester_id == user.id and change_request.status in {
-        ChangeRequest.STATUS_DRAFT,
-        ChangeRequest.STATUS_REJECTED,
-    }
-
-
-def can_transition(user, change_request: ChangeRequest, target_status: str) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser or has_group(user, "Auditor/Admin"):
-        return True
-    if target_status == ChangeRequest.STATUS_SUBMITTED:
-        return change_request.requester_id == user.id
-    if target_status in {ChangeRequest.STATUS_APPROVED, ChangeRequest.STATUS_REJECTED}:
-        return has_group(user, "Approver") or has_group(user, "CAB")
-    if target_status in {
-        ChangeRequest.STATUS_SCHEDULED,
-        ChangeRequest.STATUS_IMPLEMENTED,
-        ChangeRequest.STATUS_VALIDATED,
-    }:
-        return has_group(user, "Implementer")
-    if target_status == ChangeRequest.STATUS_CLOSED:
-        return has_group(user, "Reviewer") or has_group(user, "Approver") or has_group(user, "CAB")
-    if target_status == ChangeRequest.STATUS_CANCELLED:
-        return change_request.requester_id == user.id
-    return False
-
-
-def can_assess_risk(user) -> bool:
-    if not user.is_authenticated:
-        return False
-    return (
-        user.is_superuser
-        or has_group(user, "Reviewer")
-        or has_group(user, "Approver")
-        or has_group(user, "CAB")
-        or has_group(user, "Auditor/Admin")
-    )
-
-
-def can_add_evidence(user, change_request: ChangeRequest) -> bool:
-    if not user.is_authenticated:
-        return False
-    return can_view_request(user, change_request)
 
 
 def dashboard(request):
@@ -105,18 +41,16 @@ def dashboard(request):
     metrics = ChangeRequest.objects.aggregate(
         total=Count("id"),
         submitted=Count("id", filter=Q(status=ChangeRequest.STATUS_SUBMITTED)),
-        in_review=Count("id", filter=Q(status=ChangeRequest.STATUS_IN_REVIEW)),
         approved=Count("id", filter=Q(status=ChangeRequest.STATUS_APPROVED)),
     )
+    metrics["pending_approvals"] = ApprovalStep.objects.filter(status=ApprovalStep.STATUS_PENDING).count()
     queue_count = 0
     my_changes = []
+    unread_notifications = []
     if request.user.is_authenticated:
-        queue_count = sum(
-            1
-            for step in ApprovalStep.objects.select_related("assigned_user")
-            if step.is_waiting_for(request.user)
-        )
+        queue_count = len(pending_steps_for_user(request.user))
         my_changes = ChangeRequest.objects.filter(requester=request.user).select_related("change_type")[:6]
+        unread_notifications = ChangeNotification.objects.filter(user=request.user, read_at__isnull=True)[:5]
     return render(
         request,
         "change_management/dashboard.html",
@@ -126,15 +60,14 @@ def dashboard(request):
             "queue_count": queue_count,
             "my_changes": my_changes,
             "change_types": ChangeType.objects.filter(is_active=True),
+            "notifications": unread_notifications,
         },
     )
 
 
 @login_required
 def request_list(request):
-    changes = ChangeRequest.objects.select_related("change_type", "requester")
-    if not (request.user.is_superuser or has_any_group(request.user, OPERATIONAL_GROUPS)):
-        changes = changes.filter(requester=request.user)
+    changes = visible_requests_for_user(request.user)
     return render(request, "change_management/request_list.html", {"changes": changes})
 
 
@@ -150,18 +83,7 @@ def request_create(request):
         form = ChangeRequestForm(request.POST)
         task_formset = ImplementationTaskFormSet(request.POST, prefix="tasks")
         if form.is_valid() and task_formset.is_valid():
-            change_request = form.save(commit=False)
-            change_request.requester = request.user
-            change_request.save()
-            task_formset.instance = change_request
-            task_formset.save()
-            initialize_workflow(change_request)
-            ChangeActivity.record(
-                change_request=change_request,
-                actor=request.user,
-                action=ChangeActivity.ACTION_CREATED,
-                summary="Change request created.",
-            )
+            change_request = create_change_request(form.save(commit=False), request.user, task_formset)
             messages.success(request, f"{change_request.change_id} created.")
             return redirect("change_management:request_detail", pk=change_request.pk)
     else:
@@ -183,14 +105,7 @@ def request_update(request, pk: int):
         form = ChangeRequestForm(request.POST, instance=change_request)
         task_formset = ImplementationTaskFormSet(request.POST, instance=change_request, prefix="tasks")
         if form.is_valid() and task_formset.is_valid():
-            change_request = form.save()
-            task_formset.save()
-            ChangeActivity.record(
-                change_request=change_request,
-                actor=request.user,
-                action=ChangeActivity.ACTION_UPDATED,
-                summary="Change request updated.",
-            )
+            change_request = update_change_request(change_request, request.user, form, task_formset)
             messages.success(request, f"{change_request.change_id} updated.")
             return redirect("change_management:request_detail", pk=change_request.pk)
     else:
@@ -223,9 +138,9 @@ def request_detail(request, pk: int):
     )
     if not can_view_request(request.user, change_request):
         raise PermissionDenied
-    risk_assessment, _ = ChangeRiskAssessment.objects.get_or_create(
+    risk_assessment = get_risk_assessment(change_request) or ChangeRiskAssessment(
         change_request=change_request,
-        defaults={"residual_risk": change_request.risk_level},
+        residual_risk=change_request.risk_level,
     )
     decision_forms = {}
     for step in change_request.approval_steps.all():
@@ -236,6 +151,7 @@ def request_detail(request, pk: int):
         for status in change_request.TRANSITIONS.get(change_request.status, set())
         if can_transition(request.user, change_request, status)
     ]
+    ChangeNotification.objects.filter(user=request.user, change_request=change_request, read_at__isnull=True).update(read_at=timezone.now())
     return render(
         request,
         "change_management/request_detail.html",
@@ -263,65 +179,33 @@ def submit_request(request, pk: int):
     if not can_transition(request.user, change_request, ChangeRequest.STATUS_SUBMITTED):
         raise PermissionDenied
     if change_request.status == ChangeRequest.STATUS_DRAFT:
-        change_request.transition_to(
-            new_status=ChangeRequest.STATUS_SUBMITTED,
-            actor=request.user,
-            summary="Change request submitted for review.",
-        )
-        change_request.transition_to(
-            new_status=ChangeRequest.STATUS_IN_REVIEW,
-            actor=request.user,
-            summary="Change request entered the review phase.",
-        )
-        ChangeActivity.record(
-            change_request=change_request,
-            actor=request.user,
-            action=ChangeActivity.ACTION_SUBMITTED,
-            summary="Change request submitted.",
-        )
-        messages.success(request, f"{change_request.change_id} submitted for review.")
+        try:
+            submit_change_request(change_request, request.user)
+            messages.success(request, f"{change_request.change_id} submitted for approval.")
+        except ValidationError as exc:
+            messages.error(request, str(exc))
     return redirect("change_management:request_detail", pk=pk)
 
 
 @login_required
 def approval_queue(request):
-    if not has_any_group(request.user, ["Reviewer", "Approver", "CAB"]) and not request.user.is_superuser:
+    if not has_any_group(request.user, ["Approver"]) and not request.user.is_superuser:
         raise PermissionDenied
-    steps = [
-        step
-        for step in ApprovalStep.objects.select_related("change_request", "assigned_user")
-        if step.is_waiting_for(request.user)
-    ]
-    return render(request, "change_management/approval_queue.html", {"steps": steps})
+    return render(request, "change_management/approval_queue.html", {"steps": pending_steps_for_user(request.user)})
 
 
 @login_required
 def decide_step(request, pk: int):
     step = get_object_or_404(ApprovalStep.objects.select_related("change_request"), pk=pk)
-    if not step.is_waiting_for(request.user) and not request.user.is_superuser:
+    if not step_is_assigned_to_user(step, request.user) and not request.user.is_superuser:
         raise PermissionDenied
     form = ApprovalDecisionForm(request.POST or None, step=step)
     if request.method == "POST" and form.is_valid():
-        outcome = form.cleaned_data["outcome"]
-        step.decide(actor=request.user, outcome=outcome, comments=form.cleaned_data["comments"])
-        pending_required = step.change_request.approval_steps.filter(
-            status=ApprovalStep.STATUS_PENDING,
-            required=True,
-        ).exists()
-        any_rejected = step.change_request.approval_steps.filter(status=ApprovalStep.STATUS_REJECTED).exists()
-        if any_rejected and step.change_request.can_transition_to(ChangeRequest.STATUS_REJECTED):
-            step.change_request.transition_to(
-                new_status=ChangeRequest.STATUS_REJECTED,
-                actor=request.user,
-                summary="Approval step rejected the request.",
-            )
-        elif not pending_required and step.change_request.can_transition_to(ChangeRequest.STATUS_APPROVED):
-            step.change_request.transition_to(
-                new_status=ChangeRequest.STATUS_APPROVED,
-                actor=request.user,
-                summary="All required approvals completed.",
-            )
-        messages.success(request, "Approval recorded.")
+        try:
+            decide_approval_step(step, request.user, form.cleaned_data["outcome"], form.cleaned_data["comments"])
+            messages.success(request, "Approval recorded.")
+        except ValidationError as exc:
+            messages.error(request, str(exc))
     return redirect("change_management:request_detail", pk=step.change_request.pk)
 
 
@@ -346,15 +230,7 @@ def transition_request(request, pk: int):
     if not can_transition(request.user, change_request, target_status):
         raise PermissionDenied
     try:
-        notes = form.cleaned_data["notes"]
-        change_request.transition_to(
-            new_status=target_status,
-            actor=request.user,
-            summary=notes or f"Status changed to {dict(ChangeRequest.STATUS_CHOICES)[target_status]}.",
-        )
-        if target_status == ChangeRequest.STATUS_IMPLEMENTED and notes:
-            change_request.post_implementation_results = notes
-            change_request.save(update_fields=["post_implementation_results", "updated_at"])
+        transition_change_request(change_request, request.user, target_status, form.cleaned_data["notes"])
         messages.success(request, f"{change_request.change_id} moved to {dict(ChangeRequest.STATUS_CHOICES)[target_status]}.")
     except ValidationError as exc:
         messages.error(request, str(exc))
@@ -368,9 +244,11 @@ def add_comment(request, pk: int):
         raise PermissionDenied
     form = ChangeCommentForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        comment = form.save(commit=False)
-        comment.change_request = change_request
-        comment.author = request.user
+        comment = ChangeComment(
+            change_request=change_request,
+            author=request.user,
+            comment=form.cleaned_data["comment"],
+        )
         comment.save()
         ChangeActivity.record(
             change_request=change_request,
@@ -378,6 +256,7 @@ def add_comment(request, pk: int):
             action=ChangeActivity.ACTION_COMMENT_ADDED,
             summary="Comment added.",
         )
+        messages.success(request, "Comment added.")
     return redirect("change_management:request_detail", pk=pk)
 
 
@@ -388,9 +267,11 @@ def add_evidence(request, pk: int):
         raise PermissionDenied
     form = ChangeEvidenceForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
-        evidence = form.save(commit=False)
-        evidence.change_request = change_request
-        evidence.uploaded_by = request.user
+        evidence = ChangeEvidence(
+            change_request=change_request,
+            uploaded_by=request.user,
+            **form.cleaned_data,
+        )
         evidence.save()
         ChangeActivity.record(
             change_request=change_request,
@@ -409,26 +290,17 @@ def update_risk(request, pk: int):
     change_request = get_object_or_404(ChangeRequest, pk=pk)
     if not can_assess_risk(request.user):
         raise PermissionDenied
-    risk_assessment, _ = ChangeRiskAssessment.objects.get_or_create(
+    risk_assessment = get_risk_assessment(change_request) or ChangeRiskAssessment(
         change_request=change_request,
-        defaults={"residual_risk": change_request.risk_level},
+        residual_risk=change_request.risk_level,
     )
     form = ChangeRiskAssessmentForm(request.POST or None, instance=risk_assessment)
     if request.method == "POST" and form.is_valid():
-        risk = form.save(commit=False)
-        risk.change_request = change_request
-        risk.assessed_by = request.user
-        risk.assessed_at = timezone.now()
-        risk.save()
-        change_request.risk_level = risk.residual_risk
-        change_request.save(update_fields=["risk_level", "updated_at"])
-        ChangeActivity.record(
-            change_request=change_request,
-            actor=request.user,
-            action=ChangeActivity.ACTION_UPDATED,
-            summary="Risk assessment updated.",
-        )
-        messages.success(request, "Risk assessment saved.")
+        try:
+            update_risk_workflow(change_request, form.save(commit=False), request.user)
+            messages.success(request, "Risk assessment saved.")
+        except ValidationError as exc:
+            messages.error(request, str(exc))
     elif request.method == "POST":
         messages.error(request, "Risk assessment could not be saved. Check the submitted fields.")
     return redirect("change_management:request_detail", pk=pk)

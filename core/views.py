@@ -5,12 +5,16 @@ import re
 from xml.etree import ElementTree
 from zipfile import ZipFile
 
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.models import Group
 from django.http import FileResponse
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from .content import SOURCE, load_site_content
 from .document_templates import DOCUMENT_TEMPLATES, TEMPLATES_LIBRARY
+from .forms import RegistrationForm
 
 
 POLICY_FILENAME = "SDLCP.docx"
@@ -35,6 +39,23 @@ def extract_docx_html(file_path: Path):
         else:
             blocks.append(f"<p>{paragraph_text}</p>")
     return "\n".join(blocks)
+
+
+def register(request):
+    if request.user.is_authenticated:
+        return redirect("/changes/")
+    if request.method == "POST":
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            requester_group, _ = Group.objects.get_or_create(name="Requester")
+            user.groups.add(requester_group)
+            login(request, user)
+            messages.success(request, "Account created. You can now submit change requests.")
+            return redirect("/changes/")
+    else:
+        form = RegistrationForm()
+    return render(request, "registration/register.html", {"form": form})
 
 
 def home(request):

@@ -16,8 +16,12 @@
     </div>
     <div class="card-grid">
         {% for change in changes %}
-        <a class="card theme-neutral" href="{% url 'change_management:request_detail' change.pk %}">
-            <p class="meta">{{ change.change_id }} · {{ change.get_status_display }} · {{ change.get_risk_level_display }}</p>
+        <a class="card status-card status-{{ change.status }}" href="{% url 'change_management:request_detail' change.pk %}">
+            <p class="meta request-meta">
+                <span>{{ change.change_id }}</span>
+                <span class="status-badge">{{ change.get_status_display }}</span>
+                <span>{{ change.get_risk_level_display }}</span>
+            </p>
             <h3>{{ change.title }}</h3>
             <p>{{ change.affected_services|truncatechars:160 }}</p>
         </a>

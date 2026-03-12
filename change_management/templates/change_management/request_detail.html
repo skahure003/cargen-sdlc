@@ -15,7 +15,7 @@
         {% if change_request.status == 'draft' %}
         <form method="post" action="{% url 'change_management:submit_request' change_request.pk %}">
             {% csrf_token %}
-            <button class="button-link" type="submit">Submit for review</button>
+            <button class="button-link" type="submit">Submit for approval</button>
         </form>
         {% endif %}
     </div>
@@ -59,17 +59,17 @@
             {% endfor %}
         </ul>
 
-        <h2>Approval workflow</h2>
+        <h2>Approval</h2>
         <ul>
             {% for step in change_request.approval_steps.all %}
             <li>
                 <strong>{{ step.name }}</strong> · {{ step.get_status_display }}
                 {% if step.assigned_user %} · {{ step.assigned_user.get_username }}{% endif %}
                 <br>
-                Role: {{ step.get_assigned_role_display }}
+                Final decision by: {{ step.get_assigned_role_display }}
             </li>
             {% empty %}
-            <li>No approval steps configured.</li>
+            <li>No approval step configured.</li>
             {% endfor %}
         </ul>
 
@@ -129,7 +129,7 @@
         {% if can_assess_risk %}
         <div class="sidebar-card">
             <span>Risk assessment</span>
-            <strong>Capture impact, likelihood, and residual risk before approval or scheduling.</strong>
+            <strong>Capture impact, likelihood, and residual risk before final approval or scheduling.</strong>
             <form method="post" action="{% url 'change_management:update_risk' change_request.pk %}" class="cm-form compact-form">
                 {% csrf_token %}
                 {{ risk_form.as_p }}
@@ -167,7 +167,7 @@
                     <form method="post" action="{% url 'change_management:decide_step' step.pk %}" class="cm-form compact-form">
                         {% csrf_token %}
                         {{ form.as_p }}
-                        <button class="button-link" type="submit">Record decision</button>
+                        <button class="button-link" type="submit">Record final decision</button>
                     </form>
                 </div>
                 {% endif %}
