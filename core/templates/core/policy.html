@@ -8,11 +8,40 @@
     <h1>{{ page.title }}</h1>
     <p class="lead">Policy guidance for secure software delivery, review, release governance, and control ownership.</p>
     <div class="hero-actions">
+        <a class="button-link button-secondary" href="{{ policy_view_url }}" target="_blank" rel="noopener">Open Policy</a>
         <a class="button-link" href="{{ policy_download_url }}">Download Policy</a>
     </div>
 </section>
 
-<section class="content-panel prose">
-    {{ page.body_html|safe }}
+<section class="content-panel">
+    <div
+        id="policy-viewer"
+        style="min-height: 70vh; border-radius: 1rem; padding: 1.5rem; background: #ffffff; overflow: auto;"
+    >
+        <p class="lead">Loading policy document...</p>
+    </div>
+    <p class="lead" style="margin-top: 1rem;">If preview fails, use "Open Policy" or "Download Policy".</p>
 </section>
+
+<script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/docx-preview@0.3.7/dist/docx-preview.min.js"></script>
+<script>
+    (async function () {
+        const container = document.getElementById("policy-viewer");
+        try {
+            const response = await fetch("{{ policy_view_url }}");
+            if (!response.ok) {
+                throw new Error("Failed to load policy document.");
+            }
+            const blob = await response.blob();
+            container.innerHTML = "";
+            await docx.renderAsync(blob, container, undefined, {
+                inWrapper: false,
+                breakPages: true,
+            });
+        } catch (error) {
+            container.innerHTML = "<p class=\"lead\">Preview unavailable. Use Open Policy or Download Policy.</p>";
+        }
+    }());
+</script>
 {% endblock %}

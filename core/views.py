@@ -83,11 +83,27 @@ def policy(request):
         {
             "page": {
                 "title": "SDLC Policy",
-                "body_html": extract_docx_html(policy_path),
             },
+            "policy_view_url": "/policy/view/",
             "policy_download_url": "/policy/download/",
         },
     )
+
+
+def policy_view(request):
+    file_path = Path(__file__).resolve().parent.parent / "static" / "templates" / POLICY_FILENAME
+    if not file_path.exists():
+        raise Http404(POLICY_FILENAME)
+    content_type, _ = mimetypes.guess_type(file_path.name)
+    response = FileResponse(
+        file_path.open("rb"),
+        as_attachment=False,
+        filename=file_path.name,
+        content_type=content_type
+        or "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    response["Content-Disposition"] = f'inline; filename="{file_path.name}"'
+    return response
 
 
 def policy_download(request):
