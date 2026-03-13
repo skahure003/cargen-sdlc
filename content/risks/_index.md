@@ -1,8 +1,12 @@
 ---
-title: Risks
-description: Common failure modes addressed by the SDLC control set.
+weight: 15
+bookFlatSection: false
+bookCollapseSection: true
+title: "Risks"
 ---
 
 # Risks
 
-These risks explain why the framework emphasizes planning, approvals, validation, and evidence.
+This section lists the risks identified in our software process and the controls that mitigate them.
+
+{{< risk_map >}}

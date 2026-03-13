@@ -1,8 +1,20 @@
 ---
+weight: 30
 title: Runtime Controls
-description: Controls used during implementation and post-deployment verification.
+bookCollapseSection: false
+bookFlatSection: true
 ---
 
-# Runtime Controls
+# {{% param "title" %}}
 
-Runtime controls focus on execution discipline, monitoring, and evidence of outcome.
+{{< columns >}}
+{{< figure src="/images/padlock.svg" alt="DevOps Compliance Framework" >}}
+<--->
+
+A secure change management proces is critical to protect the software development lifecycle (SDLC) from threats like unauthorized deployments, sensitive data exposure, and configuration issues. 
+
+It ensures that key oversight and guardrails are applied in our operations.
+
+{{< /columns >}}
+
+{{< section_cards >}}

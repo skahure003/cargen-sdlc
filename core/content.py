@@ -367,8 +367,7 @@ def load_site_content():
     areas = sorted(
         [
             build_page(path.relative_to(CONTENT_ROOT))
-            for path in (CONTENT_ROOT / "areas").glob("**/*.md")
-            if path.name != "_index.md"
+            for path in (CONTENT_ROOT / "areas").glob("*/_index.md")
         ],
         key=lambda item: item.get("weight", 9999),
     )

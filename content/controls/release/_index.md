@@ -1,8 +1,21 @@
 ---
+weight: 20
 title: Release Controls
-description: Controls that gate deployment readiness and approvals.
+bookCollapseSection: false
+bookFlatSection: true
 ---
 
-# Release Controls
+# {{% param "title" %}}
 
-Release controls verify that a proposed change is authorized and ready for execution.
+{{< columns >}}
+{{< figure src="/images/padlock.svg" alt="DevOps Compliance Framework" >}}
+<--->
+
+A secure validation proces is critical to protect the software development lifecycle (SDLC) from threats like unauthorized code changes, security vulnuerabilities, and quality issues. 
+
+It ensures that key oversight and guardrails are applied to our software development process.
+
+
+{{< /columns >}}
+
+{{< section_cards >}}
