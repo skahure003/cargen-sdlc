@@ -5,14 +5,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ site_meta.title }}{% endblock %}</title>
-    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="icon" type="image/png" href="{% static 'cargen.png' %}">
     <link rel="stylesheet" href="{% static 'core/styles.css' %}">
 </head>
 <body class="{% if request.user.is_authenticated and '/changes/' in request.path %}auth-change-theme{% endif %}">
     <div class="page-shell">
         <header class="site-header">
             <a class="brand" href="/">
-                <span class="brand-mark">CG</span>
+                <span class="brand-mark">
+                    <img src="{% static 'cargen.png' %}" alt="{{ site_meta.company_label }} logo">
+                </span>
                 <span>
                     <strong>{{ site_meta.company_label }}</strong>
                     <small>{{ site_meta.title }}</small>

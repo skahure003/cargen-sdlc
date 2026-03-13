@@ -124,10 +124,14 @@ img {
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #1f3450 0%, #0f7a62 100%);
-    color: #fff;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.brand-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .site-nav {
