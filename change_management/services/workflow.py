@@ -164,7 +164,6 @@ def validate_submission(change_request: ChangeRequest):
     required_fields = [
         "title",
         "business_justification",
-        "affected_services",
         "implementation_plan",
         "test_validation_plan",
         "rollback_plan",
@@ -192,8 +191,6 @@ def validate_transition_preconditions(change_request: ChangeRequest, target_stat
         if not change_request.planned_start or not change_request.planned_end:
             raise ValidationError("A planned implementation window is required before marking implemented.")
     elif target_status == ChangeRequest.STATUS_CLOSED:
-        if not change_request.post_implementation_results.strip():
-            raise ValidationError("Post-implementation results are required before closing the change.")
         if not change_request.evidence.exists():
             raise ValidationError("At least one evidence attachment is required before closing the change.")
 
@@ -354,9 +351,6 @@ def transition_change_request(change_request: ChangeRequest, actor, target_statu
         actor=actor,
         summary=notes or f"Status changed to {dict(ChangeRequest.STATUS_CHOICES)[target_status]}.",
     )
-    if target_status == ChangeRequest.STATUS_IMPLEMENTED and notes:
-        change_request.post_implementation_results = notes
-        change_request.save(update_fields=["post_implementation_results", "updated_at"])
     if target_status == ChangeRequest.STATUS_SCHEDULED:
         recipients = list(change_request.implementation_tasks.exclude(owner__isnull=True).values_list("owner", flat=True))
         if recipients:

@@ -112,12 +112,10 @@ class ChangeRequest(models.Model):
     ]
 
     RISK_LOW = "low"
-    RISK_MEDIUM = "medium"
     RISK_HIGH = "high"
     RISK_CRITICAL = "critical"
     RISK_CHOICES = [
         (RISK_LOW, "Low"),
-        (RISK_MEDIUM, "Medium"),
         (RISK_HIGH, "High"),
         (RISK_CRITICAL, "Critical"),
     ]
@@ -126,7 +124,10 @@ class ChangeRequest(models.Model):
 
     change_id = models.CharField(max_length=32, unique=True, blank=True)
     title = models.CharField(max_length=200)
-    business_justification = models.TextField()
+    department = models.CharField(max_length=160, blank=True)
+    system_or_application = models.CharField(max_length=200, blank=True)
+    business_justification = models.TextField(verbose_name="Reason for change")
+    business_impact = models.TextField(blank=True)
     requester = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -141,7 +142,7 @@ class ChangeRequest(models.Model):
         related_name="requests",
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
-    risk_level = models.CharField(max_length=20, choices=RISK_CHOICES, default=RISK_MEDIUM)
+    risk_level = models.CharField(max_length=20, choices=RISK_CHOICES, default=RISK_LOW)
     affected_services = models.TextField(help_text="Systems, services, or business capabilities impacted.")
     implementation_plan = models.TextField()
     test_validation_plan = models.TextField()
@@ -150,7 +151,6 @@ class ChangeRequest(models.Model):
     planned_end = models.DateTimeField(null=True, blank=True)
     outage_impact = models.TextField(blank=True)
     security_impact = models.TextField(blank=True)
-    privacy_impact = models.TextField(blank=True)
     compliance_impact = models.TextField(blank=True)
     linked_items = models.TextField(blank=True, help_text="Tickets, repositories, releases, deployments.")
     post_implementation_results = models.TextField(blank=True)
@@ -193,8 +193,6 @@ class ChangeRequest(models.Model):
     def clean(self):
         if self.planned_start and self.planned_end and self.planned_end <= self.planned_start:
             raise ValidationError("Planned end must be after planned start.")
-        if self.template and self.template.change_type_id != self.change_type_id:
-            raise ValidationError("Template must match the selected change type.")
 
     def save(self, *args, **kwargs):
         creating = self._state.adding
@@ -584,7 +582,32 @@ class ChangeNotification(models.Model):
 
 
 def default_approval_blueprint(change_type: ChangeType, risk_level: str) -> list[dict]:
-    return [{"name": "Final Approval", "sequence": 1, "assigned_role": ApprovalStep.ROLE_APPROVER}]
+    return [
+        {
+            "name": "Process Owner Approval",
+            "sequence": 1,
+            "assigned_role": ApprovalStep.ROLE_REVIEWER,
+            "assigned_group": "Reviewer",
+        },
+        {
+            "name": "Business Owner Approval",
+            "sequence": 2,
+            "assigned_role": ApprovalStep.ROLE_APPROVER,
+            "assigned_group": "Approver",
+        },
+        {
+            "name": "Head of IT Approval",
+            "sequence": 3,
+            "assigned_role": ApprovalStep.ROLE_AUDITOR,
+            "assigned_group": "Auditor/Admin",
+        },
+        {
+            "name": "IT Implementation Acknowledgement",
+            "sequence": 4,
+            "assigned_role": ApprovalStep.ROLE_IMPLEMENTER,
+            "assigned_group": "Implementer",
+        },
+    ]
 
 
 @transaction.atomic

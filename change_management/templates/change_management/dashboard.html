@@ -6,8 +6,8 @@
 <section class="hero change-hero">
     <div class="hero-copy">
         <p class="eyebrow">Change Management</p>
-        <h1>Standardized Change Submission, Approval, And Evidence Capture</h1>
-        <p class="lead">Requesters Raise Changes, Approvers Make The Final Decision, And The Platform Preserves The Audit Trail.</p>
+        <h1>Standardized Change Submission, Multi-Stage Approval, And Evidence Capture</h1>
+        <p class="lead">Requesters raise changes, approvers complete the named business and IT review stages, and the platform preserves the audit trail.</p>
         <div class="hero-actions">
             <a class="button-link" href="{% url 'change_management:request_create' %}">New change request</a>
             <a class="button-link" href="{% url 'change_management:approval_queue' %}">Approval queue</a>
@@ -37,14 +37,14 @@
     <div class="card-grid">
         {% for change_type in change_types %}
         <article class="card theme-neutral">
-            <p class="meta">Single Approval</p>
+            <p class="meta">Four Approval Stages</p>
             <h3>{{ change_type.name }}</h3>
-            <p>Each {{ change_type.name|lower }} request is submitted by a requester and completed by one final approver.</p>
+            <p>Each {{ change_type.name|lower }} request passes through Process Owner, Business Owner, Head of IT, and IT Implementation acknowledgement.</p>
         </article>
         {% empty %}
         <article class="card theme-neutral">
             <h3>No change types configured yet</h3>
-            <p>Create standard, normal, and emergency change types in admin to shape request intake.</p>
+            <p>Create major and minor change types in admin to shape request intake.</p>
         </article>
         {% endfor %}
     </div>
@@ -87,7 +87,7 @@
                 <span class="status-badge">{{ change.get_status_display }}</span>
             </p>
             <h3>{{ change.title }}</h3>
-            <p>{{ change.affected_services|truncatechars:120 }}</p>
+            <p>{{ change.business_impact|default:change.business_justification|truncatechars:120 }}</p>
         </a>
         {% endfor %}
     </div>

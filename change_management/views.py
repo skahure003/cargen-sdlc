@@ -189,7 +189,7 @@ def submit_request(request, pk: int):
 
 @login_required
 def approval_queue(request):
-    if not has_any_group(request.user, ["Approver"]) and not request.user.is_superuser:
+    if not has_any_group(request.user, ["Reviewer", "Approver", "Implementer", "Auditor/Admin"]) and not request.user.is_superuser:
         raise PermissionDenied
     return render(request, "change_management/approval_queue.html", {"steps": pending_steps_for_user(request.user)})
 

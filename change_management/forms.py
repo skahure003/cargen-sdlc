@@ -14,39 +14,32 @@ from .models import (
 class ChangeRequestForm(forms.ModelForm):
     PLACEHOLDERS = {
         "title": "Summarize the planned change in one clear line.",
-        "business_justification": "Explain why this change is needed, what risk or business outcome it addresses, and why now.",
-        "affected_services": "List the systems, services, teams, or business capabilities that will be affected.",
+        "department": "Select or enter the requesting department.",
+        "system_or_application": "State the system, application, or module affected by this change.",
+        "business_justification": "Explain why the change is required and the business or operational need it addresses.",
+        "business_impact": "Describe the expected business impact, service effect, or operational outcome of the change.",
         "implementation_plan": "Describe the implementation steps in execution order, including owners and prerequisites.",
         "test_validation_plan": "Describe how the change will be tested and what evidence will confirm success.",
         "rollback_plan": "Describe how the change will be reversed safely if validation fails.",
-        "outage_impact": "State any expected downtime, degraded service, customer impact, or communication requirements.",
         "security_impact": "Capture any security implications, control changes, or risk introduced by this change.",
-        "privacy_impact": "Note whether personal data, access patterns, or data flows are affected.",
-        "compliance_impact": "Document any policy, regulatory, audit, or governance considerations.",
-        "linked_items": "Reference related tickets, repositories, release IDs, deployment jobs, or approvals.",
-        "post_implementation_results": "After implementation, record the outcome, validation evidence, incidents, or follow-up actions.",
     }
 
     class Meta:
         model = ChangeRequest
         fields = [
             "title",
+            "department",
+            "system_or_application",
             "change_type",
-            "template",
             "risk_level",
             "business_justification",
-            "affected_services",
+            "business_impact",
             "implementation_plan",
             "test_validation_plan",
             "rollback_plan",
             "planned_start",
             "planned_end",
-            "outage_impact",
             "security_impact",
-            "privacy_impact",
-            "compliance_impact",
-            "linked_items",
-            "post_implementation_results",
         ]
         widgets = {
             "planned_start": forms.DateTimeInput(
@@ -59,6 +52,13 @@ class ChangeRequestForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["business_justification"].label = "Reason for change"
+        self.fields["change_type"].queryset = self.fields["change_type"].queryset.filter(slug__in=["major", "minor"])
+        self.fields["risk_level"].choices = [
+            (ChangeRequest.RISK_LOW, "Low"),
+            (ChangeRequest.RISK_HIGH, "High"),
+            (ChangeRequest.RISK_CRITICAL, "Critical"),
+        ]
         for field_name, placeholder in self.PLACEHOLDERS.items():
             if field_name in self.fields:
                 self.fields[field_name].widget.attrs["placeholder"] = placeholder
@@ -122,8 +122,9 @@ class ChangeEvidenceForm(forms.ModelForm):
 ImplementationTaskFormSet = inlineformset_factory(
     ChangeRequest,
     ImplementationTask,
-    fields=["title", "description", "sequence", "owner", "status", "due_at"],
+    fields=["title"],
     extra=1,
-    can_delete=True,
-    widgets={"due_at": forms.DateTimeInput(attrs={"type": "datetime-local"})},
+    max_num=1,
+    validate_max=True,
+    can_delete=False,
 )

@@ -6,7 +6,7 @@
 <section class="page-header theme-neutral">
     <p class="eyebrow">Change Management</p>
     <h1>{{ page_title }}</h1>
-    <p class="lead">Capture change scope, risk, implementation details, and rollback readiness before the request enters approval.</p>
+    <p class="lead">Capture department, system scope, reason for change, business impact, and the core implementation details before the request enters approval.</p>
 </section>
 
 <section class="detail-layout">
@@ -16,7 +16,7 @@
             {{ form.non_field_errors }}
             <div class="form-grid">
                 {% for field in form %}
-                <div class="form-field {% if field.name == 'business_justification' or field.name == 'implementation_plan' or field.name == 'test_validation_plan' or field.name == 'rollback_plan' or field.name == 'affected_services' or field.name == 'outage_impact' or field.name == 'security_impact' or field.name == 'privacy_impact' or field.name == 'compliance_impact' or field.name == 'linked_items' or field.name == 'post_implementation_results' %}span-2{% endif %}">
+                <div class="form-field {% if field.name == 'business_justification' or field.name == 'business_impact' or field.name == 'implementation_plan' or field.name == 'test_validation_plan' or field.name == 'rollback_plan' or field.name == 'security_impact' %}span-2{% endif %}">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
                     {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
@@ -25,7 +25,7 @@
                 {% endfor %}
             </div>
 
-            <h2>Implementation tasks</h2>
+            <h2>Implementation task</h2>
             {{ task_formset.management_form }}
             <div class="task-list">
                 {% for task_form in task_formset %}
@@ -53,11 +53,11 @@
     <aside class="detail-sidebar">
         <div class="sidebar-card">
             <span>Standardized capture</span>
-            <strong>Collect justification, implementation, validation, rollback, impact, and linked release evidence.</strong>
+            <strong>Collect department, system, reason for change, business impact, and the core implementation details.</strong>
         </div>
         <div class="sidebar-card">
             <span>Approval workflow</span>
-            <strong>Approval steps are created after save based on change type, template, and risk profile.</strong>
+            <strong>Approval steps are created after save for Process Owner, Business Owner, Head of IT, and IT Implementation acknowledgement.</strong>
         </div>
     </aside>
 </section>
