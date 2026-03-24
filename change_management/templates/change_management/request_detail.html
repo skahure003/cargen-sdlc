@@ -49,15 +49,6 @@
         <h2>Security impact</h2>
         <p>{{ change_request.security_impact|default:"Not recorded"|linebreaksbr }}</p>
 
-        <h2>Implementation task</h2>
-        <ul>
-            {% for task in change_request.implementation_tasks.all %}
-            <li>{{ task.title }}</li>
-            {% empty %}
-            <li>No implementation task recorded.</li>
-            {% endfor %}
-        </ul>
-
         <h2>Approval</h2>
         <ul>
             {% for step in change_request.approval_steps.all %}
@@ -69,19 +60,6 @@
             </li>
             {% empty %}
             <li>No approval step configured.</li>
-            {% endfor %}
-        </ul>
-
-        <h2>Evidence</h2>
-        <ul>
-            {% for item in change_request.evidence.all %}
-            <li>
-                {{ item.title }} · {{ item.get_evidence_type_display }}
-                {% if item.external_url %}<a href="{{ item.external_url }}">Link</a>{% endif %}
-                {% if item.file %}<a href="{{ item.file.url }}">File</a>{% endif %}
-            </li>
-            {% empty %}
-            <li>No evidence attached.</li>
             {% endfor %}
         </ul>
 
@@ -112,7 +90,7 @@
             <strong>Department</strong>
             <div>{{ change_request.department|default:"Not set" }}</div>
             <strong>Window</strong>
-            <div>{{ change_request.planned_start|default:"Not set" }} to {{ change_request.planned_end|default:"Not set" }}</div>
+            <div>{{ change_request.planned_start|date:"d M Y"|default:"Not set" }} to {{ change_request.planned_end|date:"d M Y"|default:"Not set" }}</div>
         </div>
 
         {% if available_transitions %}

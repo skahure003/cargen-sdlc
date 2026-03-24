@@ -12,13 +12,15 @@ class ChangeManagementSmokeTests(TestCase):
     def setUp(self):
         self.requester = User.objects.create_user(username="requester", password="pass12345")
         self.requester.groups.add(Group.objects.get(name="Requester"))
+        self.reviewer = User.objects.create_user(username="reviewer", password="pass12345")
+        self.reviewer.groups.add(Group.objects.get(name="Reviewer"))
         self.approver = User.objects.create_user(username="approver", password="pass12345")
         self.approver.groups.add(Group.objects.get(name="Approver"))
         self.implementer = User.objects.create_user(username="implementer", password="pass12345")
         self.implementer.groups.add(Group.objects.get(name="Implementer"))
         self.auditor = User.objects.create_user(username="auditor", password="pass12345")
         self.auditor.groups.add(Group.objects.get(name="Auditor/Admin"))
-        self.change_type = ChangeType.objects.get(slug="normal")
+        self.change_type = ChangeType.objects.get(slug="minor")
 
     def test_dashboard_loads(self):
         response = self.client.get(reverse("change_management:dashboard"))
@@ -70,35 +72,33 @@ class ChangeManagementSmokeTests(TestCase):
                 "system_or_application": "Express Way",
                 "change_type": self.change_type.pk,
                 "risk_level": ChangeRequest.RISK_HIGH,
+                "process_owner_approver": self.reviewer.pk,
+                "business_owner_approver": self.approver.pk,
+                "head_of_it_approver": self.auditor.pk,
+                "implementation_acknowledger": self.implementer.pk,
                 "business_justification": "Required for planned release.",
                 "business_impact": "Improves service stability.",
-                "affected_services": "Customer API and reporting worker.",
                 "implementation_plan": "Deploy the application and verify health checks.",
                 "test_validation_plan": "Run smoke tests and verify dashboards.",
                 "rollback_plan": "Rollback to previous container image.",
                 "planned_start": "",
                 "planned_end": "",
-                "outage_impact": "Brief restart only.",
                 "security_impact": "No material change.",
-                "compliance_impact": "No compliance impact.",
-                "linked_items": "JIRA-101, release/2026.03.11",
                 "tasks-TOTAL_FORMS": "1",
                 "tasks-INITIAL_FORMS": "0",
                 "tasks-MIN_NUM_FORMS": "0",
                 "tasks-MAX_NUM_FORMS": "1000",
                 "tasks-0-title": "Deploy application",
-                "tasks-0-description": "Apply release artifact.",
-                "tasks-0-sequence": "1",
-                "tasks-0-owner": "",
-                "tasks-0-status": "pending",
-                "tasks-0-due_at": "",
             },
         )
         self.assertEqual(response.status_code, 302)
         change_request = ChangeRequest.objects.get(title="Deploy release 2026.03.11")
         self.assertTrue(change_request.change_id.startswith("CHG-"))
-        self.assertEqual(change_request.approval_steps.count(), 1)
-        self.assertEqual(change_request.approval_steps.first().assigned_role, ApprovalStep.ROLE_APPROVER)
+        self.assertEqual(change_request.approval_steps.count(), 4)
+        self.assertEqual(change_request.approval_steps.get(name="Process Owner Approval").assigned_user, self.reviewer)
+        self.assertEqual(change_request.approval_steps.get(name="Business Owner Approval").assigned_user, self.approver)
+        self.assertEqual(change_request.approval_steps.get(name="Head of IT Approval").assigned_user, self.auditor)
+        self.assertEqual(change_request.approval_steps.get(name="IT Implementation Acknowledgement").assigned_user, self.implementer)
 
     def test_requester_cannot_add_evidence_to_other_users_change(self):
         other_requester = User.objects.create_user(username="requester_two", password="pass12345")

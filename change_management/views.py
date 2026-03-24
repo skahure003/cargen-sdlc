@@ -8,10 +8,10 @@ from django.utils import timezone
 from .forms import (
     ApprovalDecisionForm,
     ChangeCommentForm,
+    EmailApprovalConfirmForm,
     ChangeEvidenceForm,
     ChangeRequestForm,
     ChangeRiskAssessmentForm,
-    ImplementationTaskFormSet,
     StatusTransitionForm,
 )
 from .models import ApprovalStep, ChangeActivity, ChangeComment, ChangeEvidence, ChangeNotification, ChangeRequest, ChangeRiskAssessment, ChangeType
@@ -26,6 +26,7 @@ from .services.workflow import (
     has_any_group,
     has_group,
     pending_steps_for_user,
+    read_email_approval_token,
     step_is_assigned_to_user,
     submit_change_request,
     transition_change_request,
@@ -34,6 +35,19 @@ from .services.workflow import (
     update_risk as update_risk_workflow,
     visible_requests_for_user,
 )
+
+
+def render_access_denied(request, *, title: str, message: str, return_label: str):
+    return render(
+        request,
+        "change_management/access_denied.html",
+        {
+            "page_title": title,
+            "message": message,
+            "return_label": return_label,
+        },
+        status=403,
+    )
 
 
 def dashboard(request):
@@ -51,6 +65,21 @@ def dashboard(request):
         queue_count = len(pending_steps_for_user(request.user))
         my_changes = ChangeRequest.objects.filter(requester=request.user).select_related("change_type")[:6]
         unread_notifications = ChangeNotification.objects.filter(user=request.user, read_at__isnull=True)[:5]
+    can_create_requests = (
+        request.user.is_authenticated
+        and (
+            request.user.is_superuser
+            or request.user.has_perm("change_management.submit_change")
+            or has_group(request.user, "Requester")
+        )
+    )
+    can_access_approval_queue = (
+        request.user.is_authenticated
+        and (
+            request.user.is_superuser
+            or has_any_group(request.user, ["Reviewer", "Approver", "Implementer", "Auditor/Admin"])
+        )
+    )
     return render(
         request,
         "change_management/dashboard.html",
@@ -61,6 +90,8 @@ def dashboard(request):
             "my_changes": my_changes,
             "change_types": ChangeType.objects.filter(is_active=True),
             "notifications": unread_notifications,
+            "can_create_requests": can_create_requests,
+            "can_access_approval_queue": can_access_approval_queue,
         },
     )
 
@@ -68,31 +99,44 @@ def dashboard(request):
 @login_required
 def request_list(request):
     changes = visible_requests_for_user(request.user)
-    return render(request, "change_management/request_list.html", {"changes": changes})
+    can_create_requests = (
+        request.user.is_superuser
+        or request.user.has_perm("change_management.submit_change")
+        or has_group(request.user, "Requester")
+    )
+    return render(
+        request,
+        "change_management/request_list.html",
+        {"changes": changes, "can_create_requests": can_create_requests},
+    )
 
 
 @login_required
 def request_create(request):
-    if not (
+    can_create_requests = (
         request.user.is_superuser
         or request.user.has_perm("change_management.submit_change")
         or has_group(request.user, "Requester")
-    ):
-        raise PermissionDenied
+    )
+    if not can_create_requests:
+        return render_access_denied(
+            request,
+            title="Request Access Required",
+            message="This page is for requesters. Approver-only accounts cannot create change requests.",
+            return_label="Back to dashboard",
+        )
     if request.method == "POST":
         form = ChangeRequestForm(request.POST)
-        task_formset = ImplementationTaskFormSet(request.POST, prefix="tasks")
-        if form.is_valid() and task_formset.is_valid():
-            change_request = create_change_request(form.save(commit=False), request.user, task_formset)
+        if form.is_valid():
+            change_request = create_change_request(form.save(commit=False), request.user, form)
             messages.success(request, f"{change_request.change_id} created.")
             return redirect("change_management:request_detail", pk=change_request.pk)
     else:
         form = ChangeRequestForm()
-        task_formset = ImplementationTaskFormSet(prefix="tasks")
     return render(
         request,
         "change_management/request_form.html",
-        {"form": form, "task_formset": task_formset, "page_title": "Create change request"},
+        {"form": form, "page_title": "Create change request"},
     )
 
 
@@ -103,20 +147,17 @@ def request_update(request, pk: int):
         raise PermissionDenied
     if request.method == "POST":
         form = ChangeRequestForm(request.POST, instance=change_request)
-        task_formset = ImplementationTaskFormSet(request.POST, instance=change_request, prefix="tasks")
-        if form.is_valid() and task_formset.is_valid():
-            change_request = update_change_request(change_request, request.user, form, task_formset)
+        if form.is_valid():
+            change_request = update_change_request(change_request, request.user, form)
             messages.success(request, f"{change_request.change_id} updated.")
             return redirect("change_management:request_detail", pk=change_request.pk)
     else:
         form = ChangeRequestForm(instance=change_request)
-        task_formset = ImplementationTaskFormSet(instance=change_request, prefix="tasks")
     return render(
         request,
         "change_management/request_form.html",
         {
             "form": form,
-            "task_formset": task_formset,
             "change_request": change_request,
             "page_title": f"Edit {change_request.change_id}",
         },
@@ -158,7 +199,6 @@ def request_detail(request, pk: int):
         {
             "change_request": change_request,
             "comment_form": ChangeCommentForm(),
-            "evidence_form": ChangeEvidenceForm(),
             "risk_form": ChangeRiskAssessmentForm(instance=risk_assessment),
             "transition_form": StatusTransitionForm(
                 change_request=change_request,
@@ -167,7 +207,6 @@ def request_detail(request, pk: int):
             "decision_forms": decision_forms,
             "can_edit": can_edit_request(request.user, change_request),
             "can_assess_risk": can_assess_risk(request.user),
-            "can_add_evidence": can_add_evidence(request.user, change_request),
             "available_transitions": available_transitions,
         },
     )
@@ -190,7 +229,12 @@ def submit_request(request, pk: int):
 @login_required
 def approval_queue(request):
     if not has_any_group(request.user, ["Reviewer", "Approver", "Implementer", "Auditor/Admin"]) and not request.user.is_superuser:
-        raise PermissionDenied
+        return render_access_denied(
+            request,
+            title="Approval Access Required",
+            message="This page is for approvers and implementation reviewers. Requester-only accounts cannot open the approval queue.",
+            return_label="Back to dashboard",
+        )
     return render(request, "change_management/approval_queue.html", {"steps": pending_steps_for_user(request.user)})
 
 
@@ -198,7 +242,12 @@ def approval_queue(request):
 def decide_step(request, pk: int):
     step = get_object_or_404(ApprovalStep.objects.select_related("change_request"), pk=pk)
     if not step_is_assigned_to_user(step, request.user) and not request.user.is_superuser:
-        raise PermissionDenied
+        return render_access_denied(
+            request,
+            title="Approval Access Required",
+            message="You are not assigned to this approval step, so you cannot record a decision here.",
+            return_label="Back to dashboard",
+        )
     form = ApprovalDecisionForm(request.POST or None, step=step)
     if request.method == "POST" and form.is_valid():
         try:
@@ -207,6 +256,55 @@ def decide_step(request, pk: int):
         except ValidationError as exc:
             messages.error(request, str(exc))
     return redirect("change_management:request_detail", pk=step.change_request.pk)
+
+
+@login_required
+def email_approval_confirm(request, token: str):
+    try:
+        token_data = read_email_approval_token(token)
+    except Exception:
+        return render_access_denied(
+            request,
+            title="Approval Link Invalid",
+            message="This approval link is invalid or has expired.",
+            return_label="Back to dashboard",
+        )
+    step = get_object_or_404(ApprovalStep.objects.select_related("change_request", "assigned_user"), pk=token_data["step_id"])
+    outcome = token_data["outcome"]
+    if step.assigned_user_id != request.user.id and not request.user.is_superuser:
+        return render_access_denied(
+            request,
+            title="Approval Link Restricted",
+            message="This approval link was issued for a different user account.",
+            return_label="Back to dashboard",
+        )
+    if step.status != ApprovalStep.STATUS_PENDING:
+        return render_access_denied(
+            request,
+            title="Approval Already Recorded",
+            message="This approval step is no longer pending.",
+            return_label="Open request",
+        )
+    action_label = "Approve" if outcome == ApprovalStep.STATUS_APPROVED else "Reject"
+    form = EmailApprovalConfirmForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            decide_approval_step(step, request.user, outcome, form.cleaned_data["comments"])
+            messages.success(request, f"{step.change_request.change_id} {action_label.lower()}d from email confirmation.")
+            return redirect("change_management:request_detail", pk=step.change_request.pk)
+        except ValidationError as exc:
+            messages.error(request, str(exc))
+            return redirect("change_management:request_detail", pk=step.change_request.pk)
+    return render(
+        request,
+        "change_management/email_approval_confirm.html",
+        {
+            "step": step,
+            "change_request": step.change_request,
+            "action_label": action_label,
+            "form": form,
+        },
+    )
 
 
 @login_required

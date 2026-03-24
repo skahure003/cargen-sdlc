@@ -9,8 +9,12 @@
         <h1>Standardized Change Submission, Multi-Stage Approval, And Evidence Capture</h1>
         <p class="lead">Requesters raise changes, approvers complete the named business and IT review stages, and the platform preserves the audit trail.</p>
         <div class="hero-actions">
+            {% if can_create_requests %}
             <a class="button-link" href="{% url 'change_management:request_create' %}">New change request</a>
+            {% endif %}
+            {% if can_access_approval_queue %}
             <a class="button-link" href="{% url 'change_management:approval_queue' %}">Approval queue</a>
+            {% endif %}
         </div>
     </div>
     <div class="hero-card">
@@ -32,7 +36,9 @@
 <section class="grid-section">
     <div class="section-head">
         <h2>Workflow model</h2>
+        {% if can_access_approval_queue %}
         <a href="{% url 'change_management:approval_queue' %}">Approver queue</a>
+        {% endif %}
     </div>
     <div class="card-grid">
         {% for change_type in change_types %}

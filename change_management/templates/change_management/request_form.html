@@ -25,23 +25,6 @@
                 {% endfor %}
             </div>
 
-            <h2>Implementation task</h2>
-            {{ task_formset.management_form }}
-            <div class="task-list">
-                {% for task_form in task_formset %}
-                <div class="task-item">
-                    {% for hidden in task_form.hidden_fields %}{{ hidden }}{% endfor %}
-                    {% for field in task_form.visible_fields %}
-                    <div class="form-field">
-                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        {{ field }}
-                        {{ field.errors }}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endfor %}
-            </div>
-
             <div class="hero-actions">
                 <button class="button-link" type="submit">Save request</button>
                 {% if change_request %}

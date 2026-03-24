@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ action_label }} {{ change_request.change_id }}{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Email Approval</p>
+    <h1>{{ action_label }} {{ change_request.change_id }}</h1>
+    <p class="lead">{{ step.name }} for {{ change_request.title }}</p>
+</section>
+
+<section class="detail-layout">
+    <div class="detail-main">
+        <form method="post" class="cm-form">
+            {% csrf_token %}
+            <div class="sidebar-card">
+                <span>Change summary</span>
+                <strong>{{ change_request.title }}</strong>
+                <div>{{ change_request.change_id }} · {{ change_request.get_status_display }}</div>
+                <div>{{ step.name }}</div>
+            </div>
+            <div class="form-field">
+                <label for="{{ form.comments.id_for_label }}">Comments</label>
+                {{ form.comments }}
+                {{ form.comments.errors }}
+            </div>
+            <div class="hero-actions">
+                <button class="button-link" type="submit">{{ action_label }}</button>
+                <a class="button-link button-secondary" href="{% url 'change_management:request_detail' change_request.pk %}">Cancel</a>
+            </div>
+        </form>
+    </div>
+    <aside class="detail-sidebar">
+        <div class="sidebar-card">
+            <span>Security</span>
+            <strong>This action records a formal approval decision on the change request.</strong>
+        </div>
+    </aside>
+</section>
+{% endblock %}

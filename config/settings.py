@@ -166,6 +166,24 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # =============================================================================
+# EMAIL
+# =============================================================================
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend",
+)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").strip().lower() in {"1", "true", "yes", "on"}
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False").strip().lower() in {"1", "true", "yes", "on"}
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@localhost")
+SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+EMAIL_APPROVAL_MAX_AGE = int(os.environ.get("EMAIL_APPROVAL_MAX_AGE", "86400"))
+
+# =============================================================================
 # DEFAULT PRIMARY KEY FIELD TYPE
 # =============================================================================
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

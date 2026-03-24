@@ -18,4 +18,5 @@ urlpatterns = [
     path("requests/<int:pk>/risk/", views.update_risk, name="update_risk"),
     path("queue/", views.approval_queue, name="approval_queue"),
     path("approvals/<int:pk>/decide/", views.decide_step, name="decide_step"),
+    path("approvals/email/<str:token>/", views.email_approval_confirm, name="email_approval_confirm"),
 ]

@@ -12,7 +12,9 @@
 <section class="grid-section">
     <div class="section-head">
         <h2>All requests</h2>
+        {% if can_create_requests %}
         <a href="{% url 'change_management:request_create' %}">New request</a>
+        {% endif %}
     </div>
     <div class="card-grid">
         {% for change in changes %}

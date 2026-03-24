@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from html import escape
+import logging
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import EmailMultiAlternatives
 from django.core.exceptions import ValidationError
+from django.core import signing
 from django.db import transaction
 from django.db.models import Prefetch
+from django.urls import reverse
 from django.utils import timezone
 
 from change_management.models import (
@@ -12,7 +19,6 @@ from change_management.models import (
     ChangeNotification,
     ChangeRequest,
     ChangeRiskAssessment,
-    ImplementationTask,
     initialize_workflow,
 )
 
@@ -26,6 +32,8 @@ ROLE_GROUP_MAP = {
     ApprovalStep.ROLE_CAB: "CAB",
 }
 OPERATIONAL_GROUPS = ["Approver", "Implementer", "Auditor/Admin"]
+logger = logging.getLogger(__name__)
+EMAIL_APPROVAL_SALT = "change-management-email-approval"
 
 
 def get_risk_assessment(change_request: ChangeRequest) -> ChangeRiskAssessment | None:
@@ -190,9 +198,6 @@ def validate_transition_preconditions(change_request: ChangeRequest, target_stat
     elif target_status == ChangeRequest.STATUS_IMPLEMENTED:
         if not change_request.planned_start or not change_request.planned_end:
             raise ValidationError("A planned implementation window is required before marking implemented.")
-    elif target_status == ChangeRequest.STATUS_CLOSED:
-        if not change_request.evidence.exists():
-            raise ValidationError("At least one evidence attachment is required before closing the change.")
 
 
 def can_transition(user, change_request: ChangeRequest, target_status: str) -> bool:
@@ -217,6 +222,93 @@ def can_transition(user, change_request: ChangeRequest, target_status: str) -> b
     return False
 
 
+def build_absolute_url(path: str) -> str:
+    return f"{settings.APP_BASE_URL}{path}"
+
+
+def make_email_approval_token(step: ApprovalStep, user, outcome: str) -> str:
+    return signing.dumps(
+        {
+            "step_id": step.pk,
+            "user_id": user.pk,
+            "outcome": outcome,
+        },
+        salt=EMAIL_APPROVAL_SALT,
+    )
+
+
+def read_email_approval_token(token: str) -> dict:
+    return signing.loads(
+        token,
+        salt=EMAIL_APPROVAL_SALT,
+        max_age=settings.EMAIL_APPROVAL_MAX_AGE,
+    )
+
+
+def email_approval_links_for_user(change_request: ChangeRequest, user) -> list[dict]:
+    steps = change_request.approval_steps.filter(
+        status=ApprovalStep.STATUS_PENDING,
+        assigned_user=user,
+    ).order_by("sequence", "pk")
+    links = []
+    for step in steps:
+        for outcome in (ApprovalStep.STATUS_APPROVED, ApprovalStep.STATUS_REJECTED):
+            token = make_email_approval_token(step, user, outcome)
+            links.append(
+                {
+                    "step_name": step.name,
+                    "outcome": outcome,
+                    "url": build_absolute_url(
+                        reverse("change_management:email_approval_confirm", args=[token])
+                    ),
+                }
+            )
+    return links
+
+
+def render_notification_email_html(change_request: ChangeRequest, message: str, approval_links: list[dict]) -> str:
+    cards = [
+        f"""
+        <p style="margin:0 0 8px;"><strong>Change request:</strong> {escape(change_request.change_id)}</p>
+        <p style="margin:0 0 8px;"><strong>Title:</strong> {escape(change_request.title)}</p>
+        <p style="margin:0 0 24px;"><strong>Status:</strong> {escape(change_request.get_status_display())}</p>
+        <p style="margin:0 0 24px;">{escape(message)}</p>
+        """
+    ]
+    if approval_links:
+        grouped_links = {}
+        for link in approval_links:
+            grouped_links.setdefault(link["step_name"], {})[link["outcome"]] = link["url"]
+        cards.append('<div style="margin:24px 0 0;">')
+        for step_name, step_links in grouped_links.items():
+            approve_url = step_links.get(ApprovalStep.STATUS_APPROVED, "#")
+            reject_url = step_links.get(ApprovalStep.STATUS_REJECTED, "#")
+            cards.append(
+                f"""
+                <div style="margin:0 0 20px;padding:16px;border:1px solid #dbe3ef;border-radius:12px;background:#f7fafc;">
+                    <p style="margin:0 0 12px;font-weight:600;color:#15314b;">{escape(step_name)}</p>
+                    <a href="{escape(approve_url)}" style="display:inline-block;margin-right:12px;padding:10px 18px;border-radius:8px;background:#0f766e;color:#ffffff;text-decoration:none;font-weight:600;">Approve</a>
+                    <a href="{escape(reject_url)}" style="display:inline-block;padding:10px 18px;border-radius:8px;background:#b91c1c;color:#ffffff;text-decoration:none;font-weight:600;">Reject</a>
+                </div>
+                """
+            )
+        cards.append("</div>")
+    else:
+        request_url = build_absolute_url(reverse("change_management:request_detail", args=[change_request.pk]))
+        cards.append(
+            f"""
+            <p style="margin:24px 0 0;">
+                <a href="{escape(request_url)}" style="display:inline-block;padding:10px 18px;border-radius:8px;background:#1d4ed8;color:#ffffff;text-decoration:none;font-weight:600;">Open request</a>
+            </p>
+            """
+        )
+    return (
+        '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;padding:24px;color:#1f2937;">'
+        f"{''.join(cards)}"
+        "</div>"
+    )
+
+
 def notify_users(change_request: ChangeRequest, users, category: str, message: str):
     unique_users = {user.pk: user for user in users if user and getattr(user, "is_authenticated", True)}.values()
     for user in unique_users:
@@ -226,6 +318,48 @@ def notify_users(change_request: ChangeRequest, users, category: str, message: s
             category=category,
             message=message,
         )
+    for user in unique_users:
+        if not getattr(user, "email", "").strip():
+            continue
+        subject = f"{change_request.change_id}: {message}"
+        lines = [
+            f"Change request: {change_request.change_id}",
+            f"Title: {change_request.title}",
+            f"Status: {change_request.get_status_display()}",
+            "",
+            message,
+        ]
+        approval_links = email_approval_links_for_user(change_request, user)
+        if approval_links:
+            lines.extend(
+                [
+                    "",
+                    "Action links:",
+                ]
+            )
+            for link in approval_links:
+                action_label = "Approve" if link["outcome"] == ApprovalStep.STATUS_APPROVED else "Reject"
+                lines.append(f"{link['step_name']} - {action_label}: {link['url']}")
+        else:
+            lines.extend(
+                [
+                    "",
+                    f"Open request: {build_absolute_url(reverse('change_management:request_detail', args=[change_request.pk]))}",
+                ]
+            )
+        body = "\n".join(lines)
+        html_body = render_notification_email_html(change_request, message, approval_links)
+        try:
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+            )
+            email.attach_alternative(html_body, "text/html")
+            email.send(fail_silently=False)
+        except Exception:
+            logger.exception("Failed to send change-management notification email for %s", change_request.change_id)
 
 
 def users_for_pending_steps(change_request: ChangeRequest):
@@ -247,14 +381,28 @@ def users_for_pending_steps(change_request: ChangeRequest):
     return users
 
 
+def assign_selected_approvers(change_request: ChangeRequest, form):
+    step_user_map = {
+        "Process Owner Approval": form.cleaned_data["process_owner_approver"],
+        "Business Owner Approval": form.cleaned_data["business_owner_approver"],
+        "Head of IT Approval": form.cleaned_data["head_of_it_approver"],
+        "IT Implementation Acknowledgement": form.cleaned_data["implementation_acknowledger"],
+    }
+    for step in change_request.approval_steps.all():
+        assigned_user = step_user_map.get(step.name)
+        if assigned_user:
+            step.assigned_user = assigned_user
+            step.assigned_group = ""
+            step.save(update_fields=["assigned_user", "assigned_group", "updated_at"])
+
+
 @transaction.atomic
-def create_change_request(change_request: ChangeRequest, actor, task_formset):
+def create_change_request(change_request: ChangeRequest, actor, form):
     change_request.requester = actor
     change_request.save()
-    task_formset.instance = change_request
-    task_formset.save()
     initialize_workflow(change_request)
     ensure_step_assignments(change_request)
+    assign_selected_approvers(change_request, form)
     synchronize_risk_workflow(change_request, actor=actor)
     ChangeActivity.record(
         change_request=change_request,
@@ -265,9 +413,9 @@ def create_change_request(change_request: ChangeRequest, actor, task_formset):
     return change_request
 
 
-def update_change_request(change_request: ChangeRequest, actor, form, task_formset):
+def update_change_request(change_request: ChangeRequest, actor, form):
     change_request = form.save()
-    task_formset.save()
+    assign_selected_approvers(change_request, form)
     synchronize_risk_workflow(change_request, actor=actor)
     ChangeActivity.record(
         change_request=change_request,
