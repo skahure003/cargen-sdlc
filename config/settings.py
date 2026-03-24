@@ -38,7 +38,10 @@ def env_bool(name: str, default: bool) -> bool:
 # =============================================================================
 # SECURITY SETTINGS
 # =============================================================================
-_allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "localhost", "127.0.0.1", "cargen.41.139.225.121.sslip.io")
+_allowed_hosts_env = os.environ.get(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,cargen.41.139.225.121.sslip.io",
+)
 ALLOWED_HOSTS = [item.strip().rstrip("/") for item in _allowed_hosts_env.split(",") if item.strip()]
 
 # CSRF Trusted Origins
@@ -50,7 +53,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 # In development also allow *.localhost and *.lvh.me for subdomain testing
 if DEBUG:
-    for _dev_host in ['.localhost', '.lvh.me', 'localhost', '127.0.0.1','cargen.41.139.225.121.sslip.io']:
+    for _dev_host in [".localhost", ".lvh.me", "localhost", "127.0.0.1", "cargen.41.139.225.121.sslip.io"]:
         if _dev_host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(_dev_host)
 
