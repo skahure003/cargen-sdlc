@@ -15,9 +15,7 @@ from django.shortcuts import redirect, render
 from .content import SOURCE, load_site_content
 from .document_templates import DOCUMENT_TEMPLATES, TEMPLATES_LIBRARY
 from .forms import RegistrationForm
-
-
-POLICY_FILENAME = "SDLCP.docx"
+from .policies import POLICIES
 
 
 def extract_docx_html(file_path: Path):
@@ -74,26 +72,55 @@ def home(request):
 
 
 def policy(request):
-    policy_path = Path(__file__).resolve().parent.parent / "static" / "templates" / POLICY_FILENAME
-    if not policy_path.exists():
-        raise Http404(POLICY_FILENAME)
+    return render(
+        request,
+        "core/policy_index.html",
+        {
+            "page": {
+                "title": "Policies",
+            },
+            "policies": POLICIES,
+        },
+    )
+
+
+def get_policy(slug: str):
+    policy_item = next((item for item in POLICIES if item["slug"] == slug), None)
+    if not policy_item:
+        raise Http404(slug)
+    return policy_item
+
+
+def get_policy_file(policy_item: dict):
+    file_path = Path(__file__).resolve().parent.parent / "static" / "templates" / policy_item["filename"]
+    if not file_path.exists():
+        raise Http404(policy_item["filename"])
+    return file_path
+
+
+def policy_detail(request, slug):
+    policy_item = get_policy(slug)
+    get_policy_file(policy_item)
     return render(
         request,
         "core/policy.html",
         {
             "page": {
-                "title": "SDLC Policy",
+                "title": policy_item["title"],
+                "summary": policy_item["summary"],
+                "eyebrow": policy_item["eyebrow"],
             },
-            "policy_view_url": "/policy/view/",
-            "policy_download_url": "/policy/download/",
+            "policy_view_url": f"/policy/{policy_item['slug']}/view/",
+            "policy_download_url": f"/policy/{policy_item['slug']}/download/",
+            "policies": POLICIES,
+            "active_policy_slug": policy_item["slug"],
         },
     )
 
 
-def policy_view(request):
-    file_path = Path(__file__).resolve().parent.parent / "static" / "templates" / POLICY_FILENAME
-    if not file_path.exists():
-        raise Http404(POLICY_FILENAME)
+def policy_view(request, slug):
+    policy_item = get_policy(slug)
+    file_path = get_policy_file(policy_item)
     content_type, _ = mimetypes.guess_type(file_path.name)
     response = FileResponse(
         file_path.open("rb"),
@@ -106,10 +133,9 @@ def policy_view(request):
     return response
 
 
-def policy_download(request):
-    file_path = Path(__file__).resolve().parent.parent / "static" / "templates" / POLICY_FILENAME
-    if not file_path.exists():
-        raise Http404(POLICY_FILENAME)
+def policy_download(request, slug):
+    policy_item = get_policy(slug)
+    file_path = get_policy_file(policy_item)
     content_type, _ = mimetypes.guess_type(file_path.name)
     return FileResponse(
         file_path.open("rb"),

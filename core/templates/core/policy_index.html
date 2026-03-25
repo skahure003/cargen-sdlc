@@ -1,0 +1,23 @@
+{% extends "core/base.html" %}
+
+{% block title %}Policies{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral policy-hero">
+    <p class="eyebrow">Policy Library</p>
+    <h1>{{ page.title }}</h1>
+    <p class="lead">Central access to software delivery and GitHub source control policy documents.</p>
+</section>
+
+<section class="grid-section">
+    <div class="card-grid policy-grid">
+        {% for policy in policies %}
+        <a class="card theme-neutral policy-card" href="/policy/{{ policy.slug }}/">
+            <p class="meta">{{ policy.eyebrow }}</p>
+            <h3>{{ policy.title }}</h3>
+            <p>{{ policy.summary }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
