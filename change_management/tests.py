@@ -10,6 +10,11 @@ from .models import ApprovalStep, ChangeRequest, ChangeType
 
 class ChangeManagementSmokeTests(TestCase):
     def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            username="admin",
+            email="admin@example.local",
+            password="pass12345",
+        )
         self.requester = User.objects.create_user(username="requester", password="pass12345")
         self.requester.groups.add(Group.objects.get(name="Requester"))
         self.reviewer = User.objects.create_user(username="reviewer", password="pass12345")
@@ -20,7 +25,8 @@ class ChangeManagementSmokeTests(TestCase):
         self.implementer.groups.add(Group.objects.get(name="Implementer"))
         self.auditor = User.objects.create_user(username="auditor", password="pass12345")
         self.auditor.groups.add(Group.objects.get(name="Auditor/Admin"))
-        self.change_type = ChangeType.objects.get(slug="minor")
+        self.major_change_type = ChangeType.objects.get(slug="major")
+        self.minor_change_type = ChangeType.objects.get(slug="minor")
 
     def test_dashboard_loads(self):
         response = self.client.get(reverse("change_management:dashboard"))
@@ -70,7 +76,7 @@ class ChangeManagementSmokeTests(TestCase):
                 "title": "Deploy release 2026.03.11",
                 "department": "ICT",
                 "system_or_application": "Express Way",
-                "change_type": self.change_type.pk,
+                "change_type": self.major_change_type.pk,
                 "risk_level": ChangeRequest.RISK_HIGH,
                 "process_owner_approver": self.reviewer.pk,
                 "business_owner_approver": self.approver.pk,
@@ -100,6 +106,37 @@ class ChangeManagementSmokeTests(TestCase):
         self.assertEqual(change_request.approval_steps.get(name="Head of IT Approval").assigned_user, self.auditor)
         self.assertEqual(change_request.approval_steps.get(name="IT Implementation Acknowledgement").assigned_user, self.implementer)
 
+    def test_minor_change_only_requires_it_implementation_approval(self):
+        self.client.login(username="requester", password="pass12345")
+        response = self.client.post(
+            reverse("change_management:request_create"),
+            {
+                "title": "Minor config change",
+                "department": "ICT",
+                "system_or_application": "Express Way",
+                "change_type": self.minor_change_type.pk,
+                "risk_level": ChangeRequest.RISK_LOW,
+                "process_owner_approver": "",
+                "business_owner_approver": "",
+                "head_of_it_approver": "",
+                "implementation_acknowledger": self.implementer.pk,
+                "business_justification": "Small non-breaking update.",
+                "business_impact": "Minimal impact.",
+                "implementation_plan": "Update the configuration and validate service health.",
+                "test_validation_plan": "Run smoke tests.",
+                "rollback_plan": "Restore previous configuration.",
+                "planned_start": "",
+                "planned_end": "",
+                "security_impact": "No material change.",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        change_request = ChangeRequest.objects.get(title="Minor config change")
+        self.assertEqual(change_request.approval_steps.count(), 1)
+        step = change_request.approval_steps.get()
+        self.assertEqual(step.name, "IT Implementation Approval")
+        self.assertEqual(step.assigned_user, self.implementer)
+
     def test_requester_cannot_add_evidence_to_other_users_change(self):
         other_requester = User.objects.create_user(username="requester_two", password="pass12345")
         other_requester.groups.add(Group.objects.get(name="Requester"))
@@ -107,7 +144,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Infra restart",
             business_justification="Routine restart.",
             requester=other_requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             risk_level=ChangeRequest.RISK_LOW,
             affected_services="Background jobs",
             implementation_plan="Restart the worker pool.",
@@ -133,7 +170,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Own change",
             business_justification="Own record.",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             affected_services="API",
             implementation_plan="Deploy",
             test_validation_plan="Test",
@@ -143,7 +180,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Other change",
             business_justification="Other record.",
             requester=other_requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             affected_services="Worker",
             implementation_plan="Deploy",
             test_validation_plan="Test",
@@ -161,7 +198,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Approver owned request",
             business_justification="Approval only",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             affected_services="Billing",
             implementation_plan="Deploy",
             test_validation_plan="Test",
@@ -185,7 +222,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="High risk release",
             business_justification="Critical update",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             affected_services="Payments",
             implementation_plan="Deploy release",
             test_validation_plan="Regression test",
@@ -216,7 +253,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Awaiting scheduling",
             business_justification="Ready to schedule",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             affected_services="API",
             implementation_plan="Deploy",
             test_validation_plan="Test",
@@ -237,7 +274,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="No planned window",
             business_justification="Window missing",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             affected_services="API",
             implementation_plan="Deploy",
             test_validation_plan="Test",
@@ -258,7 +295,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Close gate",
             business_justification="Testing close gate",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             affected_services="API",
             implementation_plan="Deploy",
             test_validation_plan="Test",
@@ -285,7 +322,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Database patch",
             business_justification="Critical fix.",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             risk_level=ChangeRequest.RISK_HIGH,
             affected_services="Primary database",
             implementation_plan="Apply patch",
@@ -315,7 +352,7 @@ class ChangeManagementSmokeTests(TestCase):
             title="Rejected request",
             business_justification="Not ready.",
             requester=self.requester,
-            change_type=self.change_type,
+            change_type=self.minor_change_type,
             risk_level=ChangeRequest.RISK_HIGH,
             affected_services="Customer API",
             implementation_plan="Apply update",
@@ -337,3 +374,20 @@ class ChangeManagementSmokeTests(TestCase):
         self.assertEqual(response.status_code, 302)
         change_request.refresh_from_db()
         self.assertEqual(change_request.status, ChangeRequest.STATUS_REJECTED)
+
+    def test_admin_can_create_approval_user(self):
+        self.client.login(username="admin", password="pass12345")
+        response = self.client.post(
+            reverse("change_management:approval_user_create"),
+            {
+                "username": "it_approver",
+                "email": "it.approver@example.local",
+                "role": "Implementer",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        created_user = User.objects.get(username="it_approver")
+        self.assertEqual(created_user.email, "it.approver@example.local")
+        self.assertTrue(created_user.groups.filter(name="Implementer").exists())

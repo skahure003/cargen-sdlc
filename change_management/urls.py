@@ -7,6 +7,7 @@ app_name = "change_management"
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("approval-users/new/", views.approval_user_create, name="approval_user_create"),
     path("requests/", views.request_list, name="request_list"),
     path("requests/new/", views.request_create, name="request_create"),
     path("requests/<int:pk>/", views.request_detail, name="request_detail"),

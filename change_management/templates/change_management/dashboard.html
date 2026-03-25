@@ -15,6 +15,9 @@
             {% if can_access_approval_queue %}
             <a class="button-link" href="{% url 'change_management:approval_queue' %}">Approval queue</a>
             {% endif %}
+            {% if can_manage_approval_users %}
+            <a class="button-link button-secondary" href="{% url 'change_management:approval_user_create' %}">Create approval user</a>
+            {% endif %}
         </div>
     </div>
     <div class="hero-card">
@@ -43,9 +46,21 @@
     <div class="card-grid">
         {% for change_type in change_types %}
         <article class="card theme-neutral">
-            <p class="meta">Four Approval Stages</p>
+            <p class="meta">
+                {% if change_type.slug == "minor" %}
+                Single IT Approval
+                {% else %}
+                Four Approval Stages
+                {% endif %}
+            </p>
             <h3>{{ change_type.name }}</h3>
-            <p>Each {{ change_type.name|lower }} request passes through Process Owner, Business Owner, Head of IT, and IT Implementation acknowledgement.</p>
+            <p>
+                {% if change_type.slug == "minor" %}
+                Minor changes route directly to IT Implementation approval for a faster low-friction workflow.
+                {% else %}
+                Major changes pass through Process Owner, Business Owner, Head of IT, and IT Implementation review.
+                {% endif %}
+            </p>
         </article>
         {% empty %}
         <article class="card theme-neutral">

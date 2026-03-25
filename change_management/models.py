@@ -582,6 +582,15 @@ class ChangeNotification(models.Model):
 
 
 def default_approval_blueprint(change_type: ChangeType, risk_level: str) -> list[dict]:
+    if change_type.slug == "minor":
+        return [
+            {
+                "name": "IT Implementation Approval",
+                "sequence": 1,
+                "assigned_role": ApprovalStep.ROLE_IMPLEMENTER,
+                "assigned_group": "Implementer",
+            },
+        ]
     return [
         {
             "name": "Process Owner Approval",
@@ -612,9 +621,11 @@ def default_approval_blueprint(change_type: ChangeType, risk_level: str) -> list
 
 @transaction.atomic
 def initialize_workflow(change_request: ChangeRequest):
-    if change_request.approval_steps.exists():
-        return
     blueprint = default_approval_blueprint(change_request.change_type, change_request.risk_level)
+    desired_names = {item["name"] for item in blueprint}
+    existing_steps = {
+        step.name: step for step in change_request.approval_steps.all()
+    }
     for item in blueprint:
         role = item.get("assigned_role", ApprovalStep.ROLE_APPROVER)
         default_group = {
@@ -625,6 +636,15 @@ def initialize_workflow(change_request: ChangeRequest):
             ApprovalStep.ROLE_AUDITOR: "Auditor/Admin",
             ApprovalStep.ROLE_CAB: "CAB",
         }.get(role, "")
+        step = existing_steps.get(item["name"])
+        if step:
+            step.sequence = item["sequence"]
+            step.assigned_role = role
+            if not step.assigned_user_id:
+                step.assigned_group = item.get("assigned_group", default_group)
+            step.required = item.get("required", True)
+            step.save(update_fields=["sequence", "assigned_role", "assigned_group", "required", "updated_at"])
+            continue
         ApprovalStep.objects.create(
             change_request=change_request,
             name=item["name"],
@@ -633,3 +653,4 @@ def initialize_workflow(change_request: ChangeRequest):
             assigned_group=item.get("assigned_group", default_group),
             required=item.get("required", True),
         )
+    change_request.approval_steps.exclude(name__in=desired_names).delete()

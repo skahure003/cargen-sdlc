@@ -16,7 +16,7 @@
             {{ form.non_field_errors }}
             <div class="form-grid">
                 {% for field in form %}
-                <div class="form-field {% if field.name == 'business_justification' or field.name == 'business_impact' or field.name == 'implementation_plan' or field.name == 'test_validation_plan' or field.name == 'rollback_plan' or field.name == 'security_impact' %}span-2{% endif %}">
+                <div class="form-field {% if field.name == 'business_justification' or field.name == 'business_impact' or field.name == 'implementation_plan' or field.name == 'test_validation_plan' or field.name == 'rollback_plan' or field.name == 'security_impact' %}span-2{% endif %}" data-field-name="{{ field.name }}">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
                     {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
@@ -40,8 +40,39 @@
         </div>
         <div class="sidebar-card">
             <span>Approval workflow</span>
-            <strong>Approval steps are created after save for Process Owner, Business Owner, Head of IT, and IT Implementation acknowledgement.</strong>
+            <strong id="workflow-summary">Major changes use Process Owner, Business Owner, Head of IT, and IT Implementation approval. Minor changes go straight to IT Implementation approval.</strong>
         </div>
     </aside>
 </section>
+
+<script>
+    (function () {
+        const changeTypeField = document.getElementById("id_change_type");
+        if (!changeTypeField) {
+            return;
+        }
+        const majorOnlyFields = [
+            "process_owner_approver",
+            "business_owner_approver",
+            "head_of_it_approver"
+        ].map((name) => document.querySelector(`[data-field-name="${name}"]`)).filter(Boolean);
+        const workflowSummary = document.getElementById("workflow-summary");
+        const minorChangeTypeId = changeTypeField.dataset.minorChangeTypeId;
+
+        function syncApprovalFields() {
+            const isMinor = minorChangeTypeId && changeTypeField.value === minorChangeTypeId;
+            majorOnlyFields.forEach((field) => {
+                field.style.display = isMinor ? "none" : "";
+            });
+            if (workflowSummary) {
+                workflowSummary.textContent = isMinor
+                    ? "Minor changes go straight to IT Implementation approval."
+                    : "Major changes use Process Owner, Business Owner, Head of IT, and IT Implementation approval.";
+            }
+        }
+
+        changeTypeField.addEventListener("change", syncApprovalFields);
+        syncApprovalFields();
+    }());
+</script>
 {% endblock %}

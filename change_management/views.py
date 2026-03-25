@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import (
+    ApprovalUserCreationForm,
     ApprovalDecisionForm,
     ChangeCommentForm,
     EmailApprovalConfirmForm,
@@ -80,6 +81,13 @@ def dashboard(request):
             or has_any_group(request.user, ["Reviewer", "Approver", "Implementer", "Auditor/Admin"])
         )
     )
+    can_manage_approval_users = (
+        request.user.is_authenticated
+        and (
+            request.user.is_superuser
+            or has_group(request.user, "Auditor/Admin")
+        )
+    )
     return render(
         request,
         "change_management/dashboard.html",
@@ -92,6 +100,34 @@ def dashboard(request):
             "notifications": unread_notifications,
             "can_create_requests": can_create_requests,
             "can_access_approval_queue": can_access_approval_queue,
+            "can_manage_approval_users": can_manage_approval_users,
+        },
+    )
+
+
+@login_required
+def approval_user_create(request):
+    if not request.user.is_superuser and not has_group(request.user, "Auditor/Admin"):
+        return render_access_denied(
+            request,
+            title="Admin Access Required",
+            message="Only administrators can create approval users.",
+            return_label="Back to dashboard",
+        )
+    if request.method == "POST":
+        form = ApprovalUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f"Approval user {user.username} created.")
+            return redirect("change_management:approval_user_create")
+    else:
+        form = ApprovalUserCreationForm()
+    return render(
+        request,
+        "change_management/approval_user_form.html",
+        {
+            "form": form,
+            "page_title": "Create approval user",
         },
     )
 

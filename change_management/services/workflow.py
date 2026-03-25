@@ -386,6 +386,7 @@ def assign_selected_approvers(change_request: ChangeRequest, form):
         "Process Owner Approval": form.cleaned_data["process_owner_approver"],
         "Business Owner Approval": form.cleaned_data["business_owner_approver"],
         "Head of IT Approval": form.cleaned_data["head_of_it_approver"],
+        "IT Implementation Approval": form.cleaned_data["implementation_acknowledger"],
         "IT Implementation Acknowledgement": form.cleaned_data["implementation_acknowledger"],
     }
     for step in change_request.approval_steps.all():

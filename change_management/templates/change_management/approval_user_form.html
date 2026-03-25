@@ -1,0 +1,46 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="page-header theme-neutral">
+    <p class="eyebrow">Change Management Admin</p>
+    <h1>{{ page_title }}</h1>
+    <p class="lead">Create approver accounts without leaving the change-management workspace.</p>
+</section>
+
+<section class="detail-layout">
+    <div class="detail-main">
+        <form method="post" class="cm-form">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="form-grid">
+                {% for field in form %}
+                <div class="form-field {% if field.name == 'email' %}span-2{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="hero-actions">
+                <button class="button-link" type="submit">Create approval user</button>
+                <a class="button-link button-secondary" href="{% url 'change_management:dashboard' %}">Back to dashboard</a>
+            </div>
+        </form>
+    </div>
+    <aside class="detail-sidebar">
+        <div class="sidebar-card">
+            <span>Roles</span>
+            <strong>Reviewer</strong>
+            <div>Process owner approval</div>
+            <strong>Approver</strong>
+            <div>Business owner approval</div>
+            <strong>Implementer</strong>
+            <div>IT implementation approval</div>
+            <strong>Auditor/Admin</strong>
+            <div>Head of IT or audit oversight</div>
+        </div>
+    </aside>
+</section>
+{% endblock %}
