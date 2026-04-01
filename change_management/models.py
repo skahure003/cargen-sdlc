@@ -133,6 +133,10 @@ class ChangeRequest(models.Model):
         on_delete=models.PROTECT,
         related_name="requested_changes",
     )
+    is_vendor_request = models.BooleanField(default=False)
+    vendor_name = models.CharField(max_length=160, blank=True)
+    vendor_company = models.CharField(max_length=160, blank=True)
+    vendor_email = models.EmailField(blank=True)
     change_type = models.ForeignKey(ChangeType, on_delete=models.PROTECT, related_name="requests")
     template = models.ForeignKey(
         ChangeTemplate,
@@ -605,14 +609,8 @@ def default_approval_blueprint(change_type: ChangeType, risk_level: str) -> list
             "assigned_group": "Approver",
         },
         {
-            "name": "Head of IT Approval",
-            "sequence": 3,
-            "assigned_role": ApprovalStep.ROLE_AUDITOR,
-            "assigned_group": "Auditor/Admin",
-        },
-        {
             "name": "IT Implementation Acknowledgement",
-            "sequence": 4,
+            "sequence": 3,
             "assigned_role": ApprovalStep.ROLE_IMPLEMENTER,
             "assigned_group": "Implementer",
         },
@@ -620,8 +618,8 @@ def default_approval_blueprint(change_type: ChangeType, risk_level: str) -> list
 
 
 @transaction.atomic
-def initialize_workflow(change_request: ChangeRequest):
-    blueprint = default_approval_blueprint(change_request.change_type, change_request.risk_level)
+def initialize_workflow(change_request: ChangeRequest, blueprint: list[dict] | None = None):
+    blueprint = blueprint or default_approval_blueprint(change_request.change_type, change_request.risk_level)
     desired_names = {item["name"] for item in blueprint}
     existing_steps = {
         step.name: step for step in change_request.approval_steps.all()

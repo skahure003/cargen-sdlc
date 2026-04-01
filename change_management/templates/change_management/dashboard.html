@@ -48,17 +48,17 @@
         <article class="card theme-neutral">
             <p class="meta">
                 {% if change_type.slug == "minor" %}
-                Single IT Approval
+                IT Approval With Optional Auditor
                 {% else %}
-                Four Approval Stages
+                Core Approval Stages With Optional Auditor
                 {% endif %}
             </p>
             <h3>{{ change_type.name }}</h3>
             <p>
                 {% if change_type.slug == "minor" %}
-                Minor changes route directly to IT Implementation approval for a faster low-friction workflow.
+                Minor changes route directly to IT Implementation approval, with an optional auditor when needed.
                 {% else %}
-                Major changes pass through Process Owner, Business Owner, Head of IT, and IT Implementation review.
+                Major changes pass through Process Owner, Business Owner, and IT Implementation review, with an optional auditor when needed.
                 {% endif %}
             </p>
         </article>

@@ -12,6 +12,12 @@
         {% if can_edit %}
         <a class="button-link" href="{% url 'change_management:request_update' change_request.pk %}">Edit request</a>
         {% endif %}
+        {% if can_delete %}
+        <form method="post" action="{% url 'change_management:request_delete' change_request.pk %}" onsubmit="return confirm('Delete this change request? This cannot be undone.');">
+            {% csrf_token %}
+            <button class="button-link button-secondary" type="submit">Delete request</button>
+        </form>
+        {% endif %}
         {% if change_request.status == 'draft' %}
         <form method="post" action="{% url 'change_management:submit_request' change_request.pk %}">
             {% csrf_token %}
@@ -28,6 +34,11 @@
             <tbody>
                 <tr><th>Department</th><td>{{ change_request.department|default:"Not recorded" }}</td></tr>
                 <tr><th>System or application</th><td>{{ change_request.system_or_application|default:"Not recorded" }}</td></tr>
+                {% if change_request.is_vendor_request %}
+                <tr><th>Vendor contact</th><td>{{ change_request.vendor_name|default:"Not recorded" }}</td></tr>
+                <tr><th>Vendor company</th><td>{{ change_request.vendor_company|default:"Not recorded" }}</td></tr>
+                <tr><th>Vendor email</th><td>{{ change_request.vendor_email|default:"Not recorded" }}</td></tr>
+                {% endif %}
             </tbody>
         </table>
 
@@ -55,6 +66,7 @@
             <li>
                 <strong>{{ step.name }}</strong> · {{ step.get_status_display }}
                 {% if step.assigned_user %} · {{ step.assigned_user.get_username }}{% endif %}
+                {% if not step.required %} · Optional{% endif %}
                 <br>
                 Final decision by: {{ step.get_assigned_role_display }}
             </li>
@@ -89,6 +101,10 @@
             <div>{{ change_request.requester.get_username }}</div>
             <strong>Department</strong>
             <div>{{ change_request.department|default:"Not set" }}</div>
+            {% if change_request.is_vendor_request %}
+            <strong>Vendor</strong>
+            <div>{{ change_request.vendor_name|default:"Not set" }}{% if change_request.vendor_company %} ({{ change_request.vendor_company }}){% endif %}</div>
+            {% endif %}
             <strong>Window</strong>
             <div>{{ change_request.planned_start|date:"d M Y"|default:"Not set" }} to {{ change_request.planned_end|date:"d M Y"|default:"Not set" }}</div>
         </div>

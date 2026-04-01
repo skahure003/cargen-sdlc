@@ -12,6 +12,7 @@ urlpatterns = [
     path("requests/new/", views.request_create, name="request_create"),
     path("requests/<int:pk>/", views.request_detail, name="request_detail"),
     path("requests/<int:pk>/edit/", views.request_update, name="request_update"),
+    path("requests/<int:pk>/delete/", views.request_delete, name="request_delete"),
     path("requests/<int:pk>/submit/", views.submit_request, name="submit_request"),
     path("requests/<int:pk>/transition/", views.transition_request, name="transition_request"),
     path("requests/<int:pk>/comments/", views.add_comment, name="add_comment"),

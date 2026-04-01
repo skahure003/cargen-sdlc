@@ -181,6 +181,17 @@ def validate_submission(change_request: ChangeRequest):
         raise ValidationError(f"Cannot submit until required fields are complete: {', '.join(missing)}.")
     if not change_request.approval_steps.exists():
         raise ValidationError("Cannot submit a change request without approval steps.")
+    steps_missing_email = [
+        f"{step.name} ({step.assigned_user.get_username()})"
+        for step in change_request.approval_steps.select_related("assigned_user")
+        if step.assigned_user_id and not step.assigned_user.email
+    ]
+    if steps_missing_email:
+        raise ValidationError(
+            "Cannot submit until each assigned approver has an email address: "
+            + ", ".join(steps_missing_email)
+            + "."
+        )
 
 
 def validate_transition_preconditions(change_request: ChangeRequest, target_status: str):
@@ -311,6 +322,7 @@ def render_notification_email_html(change_request: ChangeRequest, message: str, 
 
 def notify_users(change_request: ChangeRequest, users, category: str, message: str):
     unique_users = {user.pk: user for user in users if user and getattr(user, "is_authenticated", True)}.values()
+    skipped_users = []
     for user in unique_users:
         ChangeNotification.objects.create(
             change_request=change_request,
@@ -320,6 +332,7 @@ def notify_users(change_request: ChangeRequest, users, category: str, message: s
         )
     for user in unique_users:
         if not getattr(user, "email", "").strip():
+            skipped_users.append(user.get_username())
             continue
         subject = f"{change_request.change_id}: {message}"
         lines = [
@@ -360,6 +373,86 @@ def notify_users(change_request: ChangeRequest, users, category: str, message: s
             email.send(fail_silently=False)
         except Exception:
             logger.exception("Failed to send change-management notification email for %s", change_request.change_id)
+    if skipped_users:
+        ChangeActivity.record(
+            change_request=change_request,
+            actor=None,
+            action=ChangeActivity.ACTION_UPDATED,
+            summary="Email notification skipped for users without an email address.",
+            metadata={"users": skipped_users, "category": category},
+        )
+
+
+def notify_external_email(change_request: ChangeRequest, email_address: str, message: str) -> bool:
+    if not email_address:
+        ChangeActivity.record(
+            change_request=change_request,
+            actor=None,
+            action=ChangeActivity.ACTION_UPDATED,
+            summary="Vendor email notification skipped because no vendor email address was provided.",
+            metadata={"category": "approval"},
+        )
+        return False
+    subject = f"{change_request.change_id}: {message}"
+    lines = [
+        f"Change request: {change_request.change_id}",
+        f"Title: {change_request.title}",
+        f"Status: {change_request.get_status_display()}",
+        "",
+        message,
+        "",
+        f"Open request: {build_absolute_url(reverse('change_management:request_detail', args=[change_request.pk]))}",
+    ]
+    html_body = render_notification_email_html(change_request, message, [])
+    try:
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body="\n".join(lines),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email_address],
+        )
+        email.attach_alternative(html_body, "text/html")
+        email.send(fail_silently=False)
+        ChangeActivity.record(
+            change_request=change_request,
+            actor=None,
+            action=ChangeActivity.ACTION_UPDATED,
+            summary=f"Vendor approval email sent to {email_address}.",
+            metadata={"category": "approval", "recipient": email_address},
+        )
+        return True
+    except Exception:
+        logger.exception("Failed to send external change-management notification email for %s", change_request.change_id)
+        ChangeActivity.record(
+            change_request=change_request,
+            actor=None,
+            action=ChangeActivity.ACTION_UPDATED,
+            summary=f"Vendor approval email failed for {email_address}.",
+            metadata={"category": "approval", "recipient": email_address},
+        )
+        return False
+
+
+def notify_requester_and_vendor_approval(change_request: ChangeRequest):
+    notify_users(
+        change_request,
+        [change_request.requester],
+        category="approval",
+        message=f"{change_request.change_id} has been approved.",
+    )
+    requester_email = getattr(change_request.requester, "email", "").strip().lower()
+    vendor_email = (change_request.vendor_email or "").strip().lower()
+    if change_request.is_vendor_request and vendor_email and vendor_email != requester_email:
+        vendor_message = f"{change_request.change_id} has been approved."
+        notify_external_email(change_request, vendor_email, vendor_message)
+    elif change_request.is_vendor_request and not vendor_email:
+        ChangeActivity.record(
+            change_request=change_request,
+            actor=None,
+            action=ChangeActivity.ACTION_UPDATED,
+            summary="Vendor approval email skipped because the vendor email address is blank.",
+            metadata={"category": "approval"},
+        )
 
 
 def users_for_pending_steps(change_request: ChangeRequest):
@@ -379,6 +472,52 @@ def users_for_pending_steps(change_request: ChangeRequest):
     if groups:
         users.extend(User.objects.filter(groups__name__in=list(groups)).distinct())
     return users
+
+
+def approval_blueprint_from_form(form) -> list[dict]:
+    change_type = form.cleaned_data["change_type"]
+    blueprint = []
+    if change_type.slug == "minor":
+        blueprint = [
+            {
+                "name": "IT Implementation Approval",
+                "sequence": 1,
+                "assigned_role": ApprovalStep.ROLE_IMPLEMENTER,
+                "assigned_group": "Implementer",
+            }
+        ]
+    else:
+        blueprint = [
+            {
+                "name": "Process Owner Approval",
+                "sequence": 1,
+                "assigned_role": ApprovalStep.ROLE_REVIEWER,
+                "assigned_group": "Reviewer",
+            },
+            {
+                "name": "Business Owner Approval",
+                "sequence": 2,
+                "assigned_role": ApprovalStep.ROLE_APPROVER,
+                "assigned_group": "Approver",
+            },
+            {
+                "name": "IT Implementation Acknowledgement",
+                "sequence": 3,
+                "assigned_role": ApprovalStep.ROLE_IMPLEMENTER,
+                "assigned_group": "Implementer",
+            },
+        ]
+    if form.cleaned_data.get("head_of_it_approver"):
+        blueprint.append(
+            {
+                "name": "Head of IT Approval",
+                "sequence": len(blueprint) + 1,
+                "assigned_role": ApprovalStep.ROLE_AUDITOR,
+                "assigned_group": "Auditor/Admin",
+                "required": False,
+            }
+        )
+    return blueprint
 
 
 def assign_selected_approvers(change_request: ChangeRequest, form):
@@ -401,7 +540,7 @@ def assign_selected_approvers(change_request: ChangeRequest, form):
 def create_change_request(change_request: ChangeRequest, actor, form):
     change_request.requester = actor
     change_request.save()
-    initialize_workflow(change_request)
+    initialize_workflow(change_request, approval_blueprint_from_form(form))
     ensure_step_assignments(change_request)
     assign_selected_approvers(change_request, form)
     synchronize_risk_workflow(change_request, actor=actor)
@@ -416,6 +555,7 @@ def create_change_request(change_request: ChangeRequest, actor, form):
 
 def update_change_request(change_request: ChangeRequest, actor, form):
     change_request = form.save()
+    initialize_workflow(change_request, approval_blueprint_from_form(form))
     assign_selected_approvers(change_request, form)
     synchronize_risk_workflow(change_request, actor=actor)
     ChangeActivity.record(
@@ -477,12 +617,7 @@ def decide_approval_step(step: ApprovalStep, actor, outcome: str, comments: str 
             actor=actor,
             summary="All required approvals completed.",
         )
-        notify_users(
-            change_request,
-            [change_request.requester],
-            category="approval",
-            message=f"{change_request.change_id} has been approved.",
-        )
+        notify_requester_and_vendor_approval(change_request)
     else:
         notify_users(
             change_request,

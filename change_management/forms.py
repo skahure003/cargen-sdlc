@@ -25,7 +25,12 @@ class ChangeRequestForm(forms.ModelForm):
     )
     process_owner_approver = forms.ModelChoiceField(queryset=None, required=False, label="Process Owner approval")
     business_owner_approver = forms.ModelChoiceField(queryset=None, required=False, label="Business Owner approval")
-    head_of_it_approver = forms.ModelChoiceField(queryset=None, required=False, label="Head of IT approval")
+    head_of_it_approver = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        label="Additional Approval (Optional)",
+        help_text="",
+    )
     implementation_acknowledger = forms.ModelChoiceField(queryset=None, required=True, label="IT Implementation approval")
 
     PLACEHOLDERS = {
@@ -38,6 +43,10 @@ class ChangeRequestForm(forms.ModelForm):
         "test_validation_plan": "Describe how the change will be tested and what evidence will confirm success.",
         "rollback_plan": "Describe how the change will be reversed safely if validation fails.",
         "security_impact": "Capture any security implications, control changes, or risk introduced by this change.",
+        "is_vendor_request": "Tick this when a superuser is creating the request on behalf of a vendor.",
+        "vendor_name": "Enter the vendor contact person name.",
+        "vendor_company": "Enter the vendor company name.",
+        "vendor_email": "Enter the vendor email address for approval updates.",
     }
 
     class Meta:
@@ -48,6 +57,10 @@ class ChangeRequestForm(forms.ModelForm):
             "system_or_application",
             "change_type",
             "risk_level",
+            "is_vendor_request",
+            "vendor_name",
+            "vendor_company",
+            "vendor_email",
             "business_justification",
             "business_impact",
             "implementation_plan",
@@ -58,6 +71,7 @@ class ChangeRequestForm(forms.ModelForm):
             "security_impact",
         ]
     def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         User = get_user_model()
         change_types = list(self.fields["change_type"].queryset.filter(slug__in=["major", "minor"]))
@@ -84,6 +98,10 @@ class ChangeRequestForm(forms.ModelForm):
                 "system_or_application",
                 "change_type",
                 "risk_level",
+                "is_vendor_request",
+                "vendor_name",
+                "vendor_company",
+                "vendor_email",
                 "process_owner_approver",
                 "business_owner_approver",
                 "head_of_it_approver",
@@ -101,6 +119,14 @@ class ChangeRequestForm(forms.ModelForm):
         for field_name, placeholder in self.PLACEHOLDERS.items():
             if field_name in self.fields:
                 self.fields[field_name].widget.attrs["placeholder"] = placeholder
+        if self.request_user and not self.request_user.is_superuser:
+            for field_name in ["is_vendor_request", "vendor_name", "vendor_company", "vendor_email"]:
+                self.fields.pop(field_name, None)
+        else:
+            self.fields["is_vendor_request"].help_text = "Only use this when the change is being raised for an external vendor."
+            self.fields["vendor_name"].help_text = ""
+            self.fields["vendor_company"].help_text = ""
+            self.fields["vendor_email"].help_text = ""
         if self.instance.pk:
             approvals_by_name = {step.name: step.assigned_user for step in self.instance.approval_steps.select_related("assigned_user")}
             self.fields["process_owner_approver"].initial = approvals_by_name.get("Process Owner Approval")
@@ -126,13 +152,26 @@ class ChangeRequestForm(forms.ModelForm):
         cleaned_data = super().clean()
         change_type = cleaned_data.get("change_type")
         is_minor = bool(change_type and change_type.slug == "minor")
+        is_vendor_request = bool(cleaned_data.get("is_vendor_request"))
+        if self.request_user and self.request_user.is_superuser and is_vendor_request:
+            vendor_required = {
+                "vendor_name": "Enter the vendor contact person name.",
+                "vendor_company": "Enter the vendor company name.",
+                "vendor_email": "Enter the vendor email address.",
+            }
+            for field_name, error_message in vendor_required.items():
+                if not cleaned_data.get(field_name):
+                    self.add_error(field_name, error_message)
+        elif self.request_user and self.request_user.is_superuser and not is_vendor_request:
+            cleaned_data["vendor_name"] = ""
+            cleaned_data["vendor_company"] = ""
+            cleaned_data["vendor_email"] = ""
         if not cleaned_data.get("implementation_acknowledger"):
             self.add_error("implementation_acknowledger", "Select the IT implementation approver.")
         if not is_minor:
             required_for_major = {
                 "process_owner_approver": "Select the Process Owner approver.",
                 "business_owner_approver": "Select the Business Owner approver.",
-                "head_of_it_approver": "Select the Head of IT approver.",
             }
             for field_name, error_message in required_for_major.items():
                 if not cleaned_data.get(field_name):

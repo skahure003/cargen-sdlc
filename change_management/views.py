@@ -162,13 +162,13 @@ def request_create(request):
             return_label="Back to dashboard",
         )
     if request.method == "POST":
-        form = ChangeRequestForm(request.POST)
+        form = ChangeRequestForm(request.POST, user=request.user)
         if form.is_valid():
             change_request = create_change_request(form.save(commit=False), request.user, form)
             messages.success(request, f"{change_request.change_id} created.")
             return redirect("change_management:request_detail", pk=change_request.pk)
     else:
-        form = ChangeRequestForm()
+        form = ChangeRequestForm(user=request.user)
     return render(
         request,
         "change_management/request_form.html",
@@ -182,13 +182,13 @@ def request_update(request, pk: int):
     if not can_edit_request(request.user, change_request):
         raise PermissionDenied
     if request.method == "POST":
-        form = ChangeRequestForm(request.POST, instance=change_request)
+        form = ChangeRequestForm(request.POST, instance=change_request, user=request.user)
         if form.is_valid():
             change_request = update_change_request(change_request, request.user, form)
             messages.success(request, f"{change_request.change_id} updated.")
             return redirect("change_management:request_detail", pk=change_request.pk)
     else:
-        form = ChangeRequestForm(instance=change_request)
+        form = ChangeRequestForm(instance=change_request, user=request.user)
     return render(
         request,
         "change_management/request_form.html",
@@ -242,6 +242,7 @@ def request_detail(request, pk: int):
             ),
             "decision_forms": decision_forms,
             "can_edit": can_edit_request(request.user, change_request),
+            "can_delete": request.user.is_superuser,
             "can_assess_risk": can_assess_risk(request.user),
             "available_transitions": available_transitions,
         },
@@ -437,4 +438,17 @@ def update_risk(request, pk: int):
             messages.error(request, str(exc))
     elif request.method == "POST":
         messages.error(request, "Risk assessment could not be saved. Check the submitted fields.")
+    return redirect("change_management:request_detail", pk=pk)
+
+
+@login_required
+def request_delete(request, pk: int):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    change_request = get_object_or_404(ChangeRequest, pk=pk)
+    change_id = change_request.change_id or f"request #{change_request.pk}"
+    if request.method == "POST":
+        change_request.delete()
+        messages.success(request, f"{change_id} deleted.")
+        return redirect("change_management:request_list")
     return redirect("change_management:request_detail", pk=pk)

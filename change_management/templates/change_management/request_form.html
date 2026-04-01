@@ -36,11 +36,11 @@
     <aside class="detail-sidebar">
         <div class="sidebar-card">
             <span>Standardized capture</span>
-            <strong>Collect department, system, reason for change, business impact, and the core implementation details.</strong>
+            <strong>Collect department, system, reason for change, business impact, and the core implementation details. Superusers can also capture vendor contact details for third-party requests.</strong>
         </div>
         <div class="sidebar-card">
             <span>Approval workflow</span>
-            <strong id="workflow-summary">Major changes use Process Owner, Business Owner, Head of IT, and IT Implementation approval. Minor changes go straight to IT Implementation approval.</strong>
+            <strong id="workflow-summary">Major changes require Process Owner, Business Owner, and IT Implementation approval. Minor changes require IT Implementation approval. You can optionally add an auditor to either workflow.</strong>
         </div>
     </aside>
 </section>
@@ -53,8 +53,13 @@
         }
         const majorOnlyFields = [
             "process_owner_approver",
-            "business_owner_approver",
-            "head_of_it_approver"
+            "business_owner_approver"
+        ].map((name) => document.querySelector(`[data-field-name="${name}"]`)).filter(Boolean);
+        const vendorToggleField = document.querySelector('[data-field-name="is_vendor_request"]');
+        const vendorFields = [
+            "vendor_name",
+            "vendor_company",
+            "vendor_email"
         ].map((name) => document.querySelector(`[data-field-name="${name}"]`)).filter(Boolean);
         const workflowSummary = document.getElementById("workflow-summary");
         const minorChangeTypeId = changeTypeField.dataset.minorChangeTypeId;
@@ -66,13 +71,31 @@
             });
             if (workflowSummary) {
                 workflowSummary.textContent = isMinor
-                    ? "Minor changes go straight to IT Implementation approval."
-                    : "Major changes use Process Owner, Business Owner, Head of IT, and IT Implementation approval.";
+                    ? "Minor changes require IT Implementation approval. You can optionally add an auditor."
+                    : "Major changes require Process Owner, Business Owner, and IT Implementation approval. You can optionally add an auditor.";
             }
         }
 
+        function syncVendorFields() {
+            if (!vendorToggleField) {
+                return;
+            }
+            const checkbox = vendorToggleField.querySelector('input[type="checkbox"]');
+            const showVendorFields = checkbox && checkbox.checked;
+            vendorFields.forEach((field) => {
+                field.style.display = showVendorFields ? "" : "none";
+            });
+        }
+
         changeTypeField.addEventListener("change", syncApprovalFields);
+        if (vendorToggleField) {
+            const checkbox = vendorToggleField.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.addEventListener("change", syncVendorFields);
+            }
+        }
         syncApprovalFields();
+        syncVendorFields();
     }());
 </script>
 {% endblock %}
