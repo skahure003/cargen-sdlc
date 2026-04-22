@@ -18,5 +18,5 @@ and discuss their implications for our software development and operations, at l
 
 ## How we implement this control
 
-* The activity and paritsipants will be logged in a Kosli audit trail.
+* The activity and participants will be logged in a Car & General LMS.
 * For new employees the OWASP top 10 will be done together with one of the other team members.

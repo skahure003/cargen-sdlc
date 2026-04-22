@@ -5,8 +5,8 @@ risk_id: SDLC-RISK-0009
 risk_key: environment_breach
 description: "External attacker running workloads in our system."
 mitigations:
-  - name: "Workload Monitoring"
-    url: "/controls/runtime/workload_monitoring/"
+  - name: "Deployment Controls"
+    url: "/controls/runtime/deployment_controls/"
 ---
 
 # {{% param "title" %}}

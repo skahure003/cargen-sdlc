@@ -7,8 +7,6 @@ description: "Authorized personnel (developers, contractors, administrators, or 
 mitigations:
   - name: "Code Review"
     url: "/controls/release/code_review/"
-  - name: "Deployment Approvals"
-    url: "/controls/release/deployment_approvals/"
   - name: "Version Control"
     url: "/controls/build/versioncontrol/"
   - name: "System Access Controls"
@@ -17,8 +15,6 @@ mitigations:
     url: "/controls/runtime/change_records/"
   - name: "Secrets Management"
     url: "/controls/runtime/secrets_managment/"
-  - name: "Runtime Workload Monitoring"
-    url: "/controls/runtime/workload_monitoring/"
   - name: "Deployment Controls"
     url: "/controls/runtime/deployment_controls/"
   - name: "Training"

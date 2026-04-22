@@ -25,5 +25,5 @@ landscapes:
 
 ## How we implement this control
 
-At this stage, as we have a relatively simple system and a single tech team, simply recording the services in [Kosli's environment monitoring]({{< ref "workload_monitoring.md" >}}) meets this need.
+At this stage, as we have a relatively simple system and a single tech team, simply recording the services in our service inventory meets this need.
 

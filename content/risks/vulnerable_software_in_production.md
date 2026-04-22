@@ -9,8 +9,6 @@ mitigations:
     url: "/controls/release/security/"
   - name: "Dependency Management"
     url: "/controls/build/dependencies/"
-  - name: "Workload Monitoring"
-    url: "/controls/runtime/workload_monitoring/"
   - name: "Quality"
     url: "/controls/release/quality/"
 ---

@@ -15,8 +15,6 @@ mitigations:
     url: "/controls/release/security/"
   - name: "Deployment Controls"
     url: "/controls/runtime/deployment_controls/"
-  - name: "Runtime Workload Monitoring"
-    url: "/controls/runtime/workload_monitoring/"
 ---
 
 # {{% param "title" %}}

@@ -11,12 +11,8 @@ mitigations:
     url: "/controls/release/code_review/"
   - name: "Change Records"
     url: "/controls/runtime/change_records/"
-  - name: "Deployment Approvals"
-    url: "/controls/release/deployment_approvals/"
   - name: "System Access Controls"
     url: "/controls/runtime/system_access/"
-  - name: "Workload Monitoring"
-    url: "/controls/runtime/workload_monitoring/"
 ---
 
 # {{% param "title" %}}

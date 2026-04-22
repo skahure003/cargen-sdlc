@@ -14,10 +14,12 @@
         <form method="post" class="cm-form">
             {% csrf_token %}
             <div class="sidebar-card">
-                <span>Change summary</span>
-                <strong>{{ change_request.title }}</strong>
-                <div>{{ change_request.change_id }} · {{ change_request.get_status_display }}</div>
-                <div>{{ step.name }}</div>
+                <a href="{% url 'change_management:request_detail' change_request.pk %}" class="change-summary-link">
+                    <span>Change summary</span>
+                    <strong>{{ change_request.title }}</strong>
+                    <div>{{ change_request.change_id }} · {{ change_request.get_status_display }}</div>
+                    <div>{{ step.name }}</div>
+                </a>
             </div>
             <div class="form-field">
                 <label for="{{ form.comments.id_for_label }}">Comments</label>
@@ -38,3 +40,15 @@
     </aside>
 </section>
 {% endblock %}
+
+<style>
+.change-summary-link {
+    text-decoration: none;
+    color: inherit;
+}
+.change-summary-link:hover {
+    text-decoration: underline;
+    color: #007bff;
+    cursor: pointer;
+}
+</style>

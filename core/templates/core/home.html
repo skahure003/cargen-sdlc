@@ -31,6 +31,25 @@
 
 <section class="grid-section">
     <div class="section-head">
+        <h2>Delivery areas</h2>
+        <a href="/areas/">Browse areas</a>
+    </div>
+    <div class="card-grid">
+        {% for area in areas %}
+        <a class="card" href="/areas/{{ area.slug }}/">
+            <h3>{{ area.title }}</h3>
+            {% if area.description %}
+            <p>{{ area.description }}</p>
+            {% else %}
+            <p>{{ area.body_html|striptags|truncatechars:170 }}</p>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="grid-section">
+    <div class="section-head">
         <h2>Control sections</h2>
         <a href="/controls/">View all controls</a>
     </div>

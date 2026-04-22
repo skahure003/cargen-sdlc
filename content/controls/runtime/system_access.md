@@ -24,6 +24,6 @@ This must be limited to authorized personnel and all activities performed should
 
 ## How we implement this control
 
-* Any remote shell session require SSO authentication and full adit trails are logged in Kosli here: https://app.kosli.com/kosli/audit-trails
+* Any remote shell session require authentication and is logged
 * This forms part of our [System Access Control Policy](https://app.drata.com/policy-builder/18)
 * All access audit trails are reviewed

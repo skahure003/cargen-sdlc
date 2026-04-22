@@ -16,47 +16,18 @@ areas:
 
 ## Background
 
-Secrets must be stored in a secure way, and a documented in a central place.
-[Cryptographic failures are the second highest risk in the OWASP top ten](https://owasp.org/Top10/A02_2021-Cryptographic_Failures/)
-so rigor and process is essential.
+Secrets must be stored carefully so they do not leak into the wrong hands.
+We keep application secrets in `.env` files and control how they are shared and updated.
+Our GitHub repositories are checked regularly for leaked secrets so issues can be found quickly.
 
-{{< figure src="/images/secrets-management.svg" alt="Change Records" >}}
+<figure class="feature-figure">
+  <img src="/assets/secrets-management.svg" alt="Secrets Management">
+  <figcaption>Secrets Management</figcaption>
+</figure>
 
 ## How we implement this control
 
-### Infrastructure secrets
-
-- We use AWS secrets manager to store infrastructure secrets.
-- Infrastructure secrets are handled with a separate [terraform-server repository](https://github.com/kosli-dev/terraform-server)
-  together with other server information.
-- The update, creation and deletion of secrets is described in [secrets/README.md](https://github.com/kosli-dev/terraform-server/blob/master/secrets/README.md).
-- We use a set of helper programs to update the secrets for the different servers. In addition to updating
-  the secrets, the helper program also:
-  - Tracks which server the secret was updated for.
-  - When and by whom the secret was updated.
-  - When does the secret expire.
-- We have a daily [GitHub job](https://github.com/kosli-dev/terraform-server/actions/workflows/secret-expire-check.yml)
-  that checks if any secret will expire within the next month.
-- If a secret is going to expire soon a message is sent to our dedicated [slack channel](https://kosli-internal.slack.com/archives/C07P4AUQGHH)
-- Every 3 months we check if any new infrastructure secrets have been added. In the
-  [server repository](https://github.com/kosli-dev/server) there is a `bin/check_new_secrets.sh` script that will do the
-  check and tell you if any secrets has been added.
-- The evidence that we ran check for new secrets are recorded in the
-  [secrets-updated](https://app.kosli.com/kosli/flows/secrets-updated/trails/) flow.
-- We have a daily [GitHub job](https://github.com/kosli-dev/server/actions/workflows/check-new-secrets.yml)
-  that checks if it is more than three months since last time we checked for new secrets.
-
-### CI workflow secrets
-
-- We use GitHub action secrets to store CI workflow secrets.
-- CI workflow secrets are either **repository secrets** or **organization secrets**.
-- Organization and respository secrets are tracked in the [secrets repository](https://github.com/kosli-dev/secrets).
-- The secrets repository contains a
-  `README.md` file with general information and one file per secret. Each file gives detailed information
-  about how to get a new secret and how to update them. It also contains
-  - When and by who was the secret updated.
-  - When does the secret expire.
-- The secrets repository has a daily GitHub job that checks if:
-  - any secret will expire within the next month
-  - any new secrets have been added
-- If a secret is going to expire soon a message is sent to our dedicated [slack channel](https://kosli-internal.slack.com/archives/C07P4AUQGHH)
+- Secrets are stored in `.env` files and are not committed to GitHub.
+- Access to secrets is limited to the people and systems that need them.
+- GitHub repositories are checked regularly for leaked secrets and accidental exposure.
+- If a secret is exposed, it must be rotated and replaced promptly.
