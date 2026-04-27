@@ -200,7 +200,7 @@ EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False").strip().lower() in {"1"
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@localhost")
 SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
-APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1").rstrip("/")
 EMAIL_APPROVAL_MAX_AGE = int(os.environ.get("EMAIL_APPROVAL_MAX_AGE", "86400"))
 
 # =============================================================================

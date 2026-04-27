@@ -5,8 +5,6 @@ risk_id: SDLC-RISK-0006
 risk_key: audit_and_compliance_failure
 description: "Inability to provide evidence of controls to regulators, auditors, or enterprise customers, resulting in reputational or commercial damage."
 mitigations:
-  - name: "Binary Provenance"
-    url: "/controls/build/binary_provenance/"
   - name: "Code Review"
     url: "/controls/release/code_review/"
   - name: "Change Records"

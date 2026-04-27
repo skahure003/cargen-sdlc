@@ -5,8 +5,6 @@ risk_id: SDLC-RISK-0001
 risk_key: supply_chain_compromise
 description: "Malicious or tampered software components—including open source libraries, base container images, build tools, or third-party services—are introduced into the software development lifecycle, resulting in compromised applications being built, tested, and deployed to production environments."
 mitigations:
-  - name: "Binary Provenance"
-    url: "/controls/build/binary_provenance/"
   - name: "Dependency Management"
     url: "/controls/build/dependencies/"
   - name: "Toolchain"

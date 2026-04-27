@@ -18,7 +18,10 @@ recommend teams use immutable docker images to define the build environment.
 This enables auditing of the build environment, as well as security scanning and
 version control.
 
-{{< figure src="/images/defined-toolchain.svg" alt="Toolchain" >}}
+<figure class="feature-figure">
+  <img src="/assets/defined-toolchain.svg" alt="Toolchain">
+  <figcaption>Toolchain</figcaption>
+</figure>
 
 {{< hint info >}}
 You can learn more about build security levels defined in the [slsa specification](https://slsa.dev/spec/v0.1/requirements#scripted-build).
@@ -28,4 +31,3 @@ You can learn more about build security levels defined in the [slsa specificatio
 
 * Our officical builds occur in Github pipelines defined as code
 * Each step runs in an immutable container
-* Each build fingerprint is stored using [Binary Provenance]({{< ref "binary_provenance.md" >}})

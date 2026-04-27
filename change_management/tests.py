@@ -33,6 +33,7 @@ class ChangeManagementSmokeTests(TestCase):
         response = self.client.get(reverse("change_management:dashboard"))
         self.assertEqual(response.status_code, 200)
 
+
     def test_policy_page_loads(self):
         response = self.client.get(reverse("policy"))
         self.assertEqual(response.status_code, 200)

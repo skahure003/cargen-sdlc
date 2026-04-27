@@ -16,9 +16,12 @@ areas:
 
 The deployment steps in our pipelines automatically log all deployments, and we can also control that we only deploy software that is approved in the {{% param "csor"  %}} audit trail.
 
-{{< figure src="/images/change-records.svg" alt="Change records" >}}
+<figure class="feature-figure">
+  <img src="/assets/change-records.svg" alt="Change records">
+  <figcaption>Change records</figcaption>
+</figure>
 
 ## How we implement this control
 
-* We monitor production systems and automatically record a forensic history of all changes in Kosli using [environment monitoring](https://docs.kosli.com/getting_started/environments/)
-    * Environment records can be found here: https://app.kosli.com/kosli/environments/
+* Production changes are managed through GitHub, where all code changes are tracked using version control.
+* Each change is recorded through commits, pull requests, and merge history, which show what was changed, who made the change, and when it was approved and merged.

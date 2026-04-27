@@ -31,7 +31,10 @@ These are described below.
 
 This branching strategy uses a combination of feature branches with pull requests.
 
-{{< figure src="/images/feature-branch-pr.svg" alt="Feature Branch Strategy" >}}
+<figure class="feature-figure">
+  <img src="/assets/feature-branch-pr.svg" alt="Feature Branch Strategy">
+  <figcaption>Feature Branch Strategy</figcaption>
+</figure>
 
 * Main branch is protected
 * Pull requests must be approved before merge to the main branch.

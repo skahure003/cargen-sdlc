@@ -19,4 +19,3 @@ Infrastructure setup, configuration and evolution must be auditable, secure and 
 
 * To ensure this we define all our production and test infrastructure using code.  Changes are rolled out via CI pipelines in {{% param "gitProvider"  %}}
 * We use the appropriate for the type and level of the change  (e.g. Terraform for infrastructure, Docker for application Runtimes)
-* All documentation around our infrastructure, security approaches and automation is maintained and up-to-date in our [Knowledge Base](https://github.com/kosli-dev/knowledge-base)

@@ -48,8 +48,7 @@ def render_access_denied(request, *, title: str, message: str, return_label: str
             "return_label": return_label,
         },
         status=403,
-    )
-
+)
 
 def dashboard(request):
     changes = ChangeRequest.objects.select_related("change_type", "requester").all()[:8]

@@ -21,9 +21,12 @@ landscapes:
 * **Incident**: Alerts are firing for a service, who do I contact?  What has changed lately?
 * **Audit**: who is reponsible that the SDLC is followed for this service?
 
-{{< figure src="/images/secrets-management.svg" alt="Change Records" >}}
+<figure class="feature-figure">
+  <img src="/assets/secrets-management.svg" alt="Service ownership">
+  <figcaption>Service ownership</figcaption>
+</figure>
 
 ## How we implement this control
 
-At this stage, as we have a relatively simple system and a single tech team, simply recording the services in our service inventory meets this need.
+At this stage, we have a relatively simple system and a single tech team, so recording services in our application inventory is sufficient to meet this need.
 

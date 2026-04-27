@@ -66,37 +66,5 @@ Our CI/CD pipelines include automated secrets scanning at multiple stages:
 * Container image scanning for embedded secrets
 
 Tools used include:
-* [Specify your secrets scanning tool, e.g., Gitleaks, TruffleHog, GitGuardian]
-
-### Secret Management
-All secrets are managed through [specify your secret management system, e.g., AWS Secrets Manager, HashiCorp Vault, Azure Key Vault]:
-
-* Secrets are injected at runtime via environment variables or secure APIs
-* Access is controlled via IAM roles/policies specific to each service and environment
-* Rotation policies are enforced with alerts for stale secrets
-* Separate secrets for dev, test, and production environments
-
-### Container Security
-Container images are scanned before deployment to ensure:
-* No secrets are baked into image layers
-* Runtime secret injection mechanisms are properly configured
-* Base images are free of exposed credentials
-
-### Remediation Process
-When secrets are detected:
-
-1. **Immediate revocation** - Compromised secrets are immediately rotated
-2. **History cleanup** - If secrets entered version control, we use secure rewrite tools to remove them from git history
-3. **Root cause analysis** - Investigate how the secret bypassed controls
-4. **Control enhancement** - Update scanning rules and processes to prevent recurrence
-
-## Evidence and Audit Trail
-
-We maintain audit trails for:
-* Secrets scanning results in CI/CD pipelines
-* Secret rotation events and schedules
-* Access logs for secret management systems
-* Remediation actions for detected secrets
-
-These audit trails are available in [specify location, e.g., Kosli, your SIEM, or logging system]
+* Gitleaks
 

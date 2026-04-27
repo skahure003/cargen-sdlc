@@ -32,9 +32,5 @@ remedial actions.
 
 ## How we implement this control
 
-* We use [snyk](https://snyk.io/) to scan code and dependencies in our CI/CD pipelines
-* We record snyk scans in Kosli and control/monitor that no artifact with missing and/or failed snyk scans run in production
-
-While not mandatory for our process, we additionally:
-
-* Run continuous nightly snyk scans on containers in production in case new vulnerabilities are found in running assets
+* We use Burp to perform security testing and identify common web application vulnerabilities.
+* We include peer review as part of the development process to check for security concerns before changes are approved and merged.

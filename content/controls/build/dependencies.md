@@ -23,12 +23,14 @@ Key points:
 Dependencies can include docker base images, 3rd-party libraries, and other
 source code.
 
-{{< figure src="/images/dependency-management.svg" alt="Dependency Management" >}}
+<figure class="feature-figure">
+  <img src="/assets/dependency-management.svg" alt="Dependency Management">
+  <figcaption>Dependency Management</figcaption>
+</figure>
 
 
 During build, these inputs to the build package can be recorded as the software
-bill-of-materials while recording
-[binary provenance]({{< relref "/controls/build/binary_provenance" >}})
+bill of materials as part of the build process.
 
 ## How we implement this control
 
@@ -38,4 +40,3 @@ We define these dependencies in the source code, at the application level and if
 | ----------- | ------------ |
 | CLI | [Golang Dependencies](https://github.com/kosli-dev/cli/blob/main/go.mod) |
 | Server | [Python Dependencies](https://github.com/kosli-dev/server/blob/master/src/requirements.txt) <br/> [Docker Dependencies](https://github.com/kosli-dev/server/blob/master/Dockerfile) <br /> [NPM Dependencies](https://github.com/kosli-dev/server/blob/master/package.json) |
-| Slack Application | [Python Dependencies](https://github.com/kosli-dev/slack-auth-app/blob/main/src/requirements.txt) <br/> [Docker Dependencies](https://github.com/kosli-dev/slack-auth-app/blob/main/Dockerfile) |

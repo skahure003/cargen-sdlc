@@ -24,7 +24,10 @@ Important considerations we make before approving a Pull Request:
 - Quality: is this maintainable?
 - Verification: Does this require manual testing? Has it been performed?
 
-{{< figure src="/images/feature-branch-pr.svg" alt="Feature Branch Strategy" >}}
+<figure class="feature-figure">
+  <img src="/assets/feature-branch-pr.svg" alt="Feature Branch Strategy">
+  <figcaption>Feature Branch Strategy</figcaption>
+</figure>
 
 {{< hint warning >}}
 ### Code Review Anti-patterns
