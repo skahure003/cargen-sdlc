@@ -40,7 +40,7 @@ def env_bool(name: str, default: bool) -> bool:
 # =============================================================================
 _allowed_hosts_env = os.environ.get(
     "ALLOWED_HOSTS",
-    "localhost,127.0.0.1,192.168.1.27,cargen.41.139.225.121.sslip.io",
+    "localhost,127.0.0.1,192.168.1.27,sdlc.cargen.com,cargen.41.139.225.121.sslip.io",
 )
 ALLOWED_HOSTS = [item.strip().rstrip("/") for item in _allowed_hosts_env.split(",") if item.strip()]
 
