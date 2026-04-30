@@ -8,8 +8,12 @@ services:
     environment:
       - DEBUG=0
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-sdlc.cargen.com}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://sdlc.cargen.com}
+      - USE_HTTPS=${USE_HTTPS:-True}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-True}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-True}
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-True}
       - DATABASE_URL=${DATABASE_URL:-}
       - DB_HOST=${DB_HOST:-}
       - DB_PORT=${DB_PORT:-5432}
@@ -19,6 +23,7 @@ services:
       - DB_CONN_MAX_AGE=${DB_CONN_MAX_AGE:-60}
       - DB_SSLMODE=${DB_SSLMODE:-prefer}
       - PORT=8000
+      - APP_BASE_URL=${APP_BASE_URL:-https://sdlc.cargen.com}
     volumes:
       - media_data:/app/media
     restart: unless-stopped
