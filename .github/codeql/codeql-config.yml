@@ -1,0 +1,12 @@
+name: CodeQL config
+
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+paths-ignore:
+  - "staticfiles/**"
+  - "static/admin/**"
+  - "staticfiles/admin/**"
+  - "**/vendor/**"
+  - "**/__pycache__/**"
